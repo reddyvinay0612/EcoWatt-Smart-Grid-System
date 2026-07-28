@@ -1,79 +1,56 @@
 import { stateData } from './stateData';
 
-export const districtData = {
-  "Maharashtra": [
-    { name: "Mumbai City", electricityConsumption: 3850, carbonEmission: 3272, pop: "3.1M", gdp: 390000, isEmissionEstimated: true },
-    { name: "Pune", electricityConsumption: 3410, carbonEmission: 2898, pop: "9.4M", gdp: 310000, isEmissionEstimated: true },
-    { name: "Nagpur", electricityConsumption: 2580, carbonEmission: 2193, pop: "4.7M", gdp: 210000, isEmissionEstimated: true },
-    { name: "Thane", electricityConsumption: 3120, carbonEmission: 2652, pop: "11.0M", gdp: 280000, isEmissionEstimated: true },
-    { name: "Nashik", electricityConsumption: 2150, carbonEmission: 1827, pop: "6.1M", gdp: 180000, isEmissionEstimated: true },
-    { name: "Aurangabad", electricityConsumption: 2010, carbonEmission: 1708, pop: "3.7M", gdp: 170000, isEmissionEstimated: true },
-    { name: "Solapur", electricityConsumption: 1650, carbonEmission: 1402, pop: "4.3M", gdp: 140000, isEmissionEstimated: true },
-    { name: "Amravati", electricityConsumption: 1540, carbonEmission: 1309, pop: "2.9M", gdp: 135000, isEmissionEstimated: true }
-  ],
-  "Karnataka": [
-    { name: "Bengaluru Urban", electricityConsumption: 4520, carbonEmission: 2260, pop: "9.6M", gdp: 380000, isEmissionEstimated: true },
-    { name: "Mysuru", electricityConsumption: 2980, carbonEmission: 1490, pop: "3.0M", gdp: 240000, isEmissionEstimated: true },
-    { name: "Belagavi", electricityConsumption: 2450, carbonEmission: 1225, pop: "4.8M", gdp: 190000, isEmissionEstimated: true },
-    { name: "Dharwad", electricityConsumption: 2210, carbonEmission: 1105, pop: "1.8M", gdp: 180000, isEmissionEstimated: true },
-    { name: "Dakshina Kannada", electricityConsumption: 3150, carbonEmission: 1575, pop: "2.1M", gdp: 270000, isEmissionEstimated: true },
-    { name: "Kalaburagi", electricityConsumption: 1450, carbonEmission: 725, pop: "2.6M", gdp: 120000, isEmissionEstimated: true },
-    { name: "Ballari", electricityConsumption: 2680, carbonEmission: 1340, pop: "2.5M", gdp: 210000, isEmissionEstimated: true },
-    { name: "Udupi", electricityConsumption: 3010, carbonEmission: 1505, pop: "1.2M", gdp: 260000, isEmissionEstimated: true }
-  ],
-  "Uttar Pradesh": [
-    { name: "Noida (G.B. Nagar)", electricityConsumption: 3950, carbonEmission: 3555, pop: "1.7M", gdp: 340000, isEmissionEstimated: true },
-    { name: "Lucknow", electricityConsumption: 1980, carbonEmission: 1782, pop: "4.6M", gdp: 150000, isEmissionEstimated: true },
-    { name: "Kanpur", electricityConsumption: 1840, carbonEmission: 1656, pop: "4.5M", gdp: 130000, isEmissionEstimated: true },
-    { name: "Varanasi", electricityConsumption: 1520, carbonEmission: 1368, pop: "3.7M", gdp: 110000, isEmissionEstimated: true },
-    { name: "Agra", electricityConsumption: 1410, carbonEmission: 1269, pop: "4.4M", gdp: 105000, isEmissionEstimated: true },
-    { name: "Prayagraj", electricityConsumption: 1120, carbonEmission: 1008, pop: "5.9M", gdp: 90000, isEmissionEstimated: true },
-    { name: "Ghaziabad", electricityConsumption: 2450, carbonEmission: 2205, pop: "4.6M", gdp: 210000, isEmissionEstimated: true },
-    { name: "Meerut", electricityConsumption: 1750, carbonEmission: 1575, pop: "3.4M", gdp: 140000, isEmissionEstimated: true }
-  ],
-  "Gujarat": [
-    { name: "Ahmedabad", electricityConsumption: 4980, carbonEmission: 4731, pop: "7.2M", gdp: 310000, isEmissionEstimated: true },
-    { name: "Surat", electricityConsumption: 5120, carbonEmission: 4864, pop: "6.0M", gdp: 330000, isEmissionEstimated: true },
-    { name: "Vadodara", electricityConsumption: 4320, carbonEmission: 4104, pop: "4.2M", gdp: 280000, isEmissionEstimated: true },
-    { name: "Rajkot", electricityConsumption: 3980, carbonEmission: 3781, pop: "3.8M", gdp: 250000, isEmissionEstimated: true },
-    { name: "Gandhinagar", electricityConsumption: 4650, carbonEmission: 4417, pop: "1.4M", gdp: 320000, isEmissionEstimated: true },
-    { name: "Jamnagar", electricityConsumption: 3820, carbonEmission: 3629, pop: "2.2M", gdp: 240000, isEmissionEstimated: true },
-    { name: "Bhavnagar", electricityConsumption: 3120, carbonEmission: 2964, pop: "2.8M", gdp: 200000, isEmissionEstimated: true },
-    { name: "Anand", electricityConsumption: 3250, carbonEmission: 3087, pop: "2.1M", gdp: 210000, isEmissionEstimated: true }
-  ],
-  "Tamil Nadu": [
-    { name: "Chennai", electricityConsumption: 4850, carbonEmission: 3395, pop: "7.1M", gdp: 350000, isEmissionEstimated: true },
-    { name: "Coimbatore", electricityConsumption: 3920, carbonEmission: 2744, pop: "3.5M", gdp: 290000, isEmissionEstimated: true },
-    { name: "Madurai", electricityConsumption: 2650, carbonEmission: 1855, pop: "3.0M", gdp: 200000, isEmissionEstimated: true },
-    { name: "Tiruchirappalli", electricityConsumption: 2780, carbonEmission: 1946, pop: "2.7M", gdp: 210000, isEmissionEstimated: true },
-    { name: "Salem", electricityConsumption: 2910, carbonEmission: 2037, pop: "3.5M", gdp: 220000, isEmissionEstimated: true },
-    { name: "Tirunelveli", electricityConsumption: 2450, carbonEmission: 1715, pop: "3.1M", gdp: 180000, isEmissionEstimated: true },
-    { name: "Vellore", electricityConsumption: 2120, carbonEmission: 1484, pop: "4.0M", gdp: 170000, isEmissionEstimated: true },
-    { name: "Erode", electricityConsumption: 3150, carbonEmission: 2205, pop: "2.3M", gdp: 230000, isEmissionEstimated: true }
-  ]
+// Database of actual real district names for all Indian States & UTs
+export const realDistrictNames = {
+  "Andaman and Nicobar Islands": ["Port Blair", "Car Nicobar", "Mayabunder", "Havelock"],
+  "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore", "Tirupati", "Kurnool", "Anantapur", "Eluru", "Kadapa", "Kakinada"],
+  "Arunachal Pradesh": ["Itanagar", "Tawang", "Ziro", "Pasighat", "Aalo", "Tezu", "Namsai", "Bomdila"],
+  "Assam": ["Guwahati", "Dibrugarh", "Silchar", "Jorhat", "Nagaon", "Tinsukia", "Tezpur", "Bongaigaon"],
+  "Bihar": ["Patna", "Gaya", "Bhagalpur", "Muzaffarpur", "Darbhanga", "Purnia", "Begusarai", "Arrah", "Nalanda", "Munger"],
+  "Chandigarh": ["Chandigarh City", "Manimajra", "Sarangpur"],
+  "Chhattisgarh": ["Raipur", "Bilaspur", "Durg", "Bhilai", "Korba", "Rajnandgaon", "Raigarh", "Jagdalpur", "Ambikapur"],
+  "Dadra and Nagar Haveli": ["Silvassa", "Khanvel"],
+  "Daman and Diu": ["Daman", "Diu"],
+  "Delhi": ["New Delhi", "South Delhi", "North Delhi", "East Delhi", "West Delhi", "Central Delhi", "Shahdara", "Dwarka", "Rohini"],
+  "Goa": ["North Goa", "South Goa"],
+  "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Gandhinagar", "Jamnagar", "Bhavnagar", "Anand", "Mehsana", "Morbi"],
+  "Haryana": ["Gurugram", "Faridabad", "Panipat", "Ambala", "Karnal", "Rohtak", "Hisar", "Panchkula", "Sonipat", "Yamunanagar"],
+  "Himachal Pradesh": ["Shimla", "Dharamshala", "Solan", "Mandi", "Kullu", "Hamirpur", "Chamba", "Una", "Kangra", "Bilaspur"],
+  "Jammu and Kashmir": ["Srinagar", "Jammu", "Anantnag", "Baramulla", "Kathua", "Udhampur", "Kupwara", "Samba", "Pulwama", "Poonch"],
+  "Jharkhand": ["Ranchi", "Jamshedpur", "Dhanbad", "Bokaro", "Hazaribagh", "Deoghar", "Giridih", "Dumka", "Adityapur"],
+  "Karnataka": ["Bengaluru Urban", "Mysuru", "Belagavi", "Dharwad", "Dakshina Kannada", "Kalaburagi", "Ballari", "Udupi", "Hubli", "Mangaluru"],
+  "Kerala": ["Thiruvananthapuram", "Ernakulam (Kochi)", "Kozhikode", "Thrissur", "Malappuram", "Palakkad", "Kollam", "Alappuzha", "Kannur", "Kottayam"],
+  "Ladakh": ["Leh", "Kargil"],
+  "Lakshadweep": ["Kavaratti", "Agatti", "Minicoy"],
+  "Madhya Pradesh": ["Indore", "Bhopal", "Jabalpur", "Gwalior", "Ujjain", "Sagar", "Dewas", "Satna", "Jhabua", "Ratlam"],
+  "Maharashtra": ["Mumbai City", "Pune", "Nagpur", "Thane", "Nashik", "Aurangabad", "Solapur", "Amravati", "Kolhapur", "Jalgaon"],
+  "Manipur": ["Imphal East", "Imphal West", "Thoubal", "Churachandpur", "Senapati", "Ukhrul"],
+  "Meghalaya": ["Shillong", "Tura", "Jowai", "Nongpoh", "Williamnagar", "Baghmara"],
+  "Mizoram": ["Aizawl", "Lunglei", "Saiha", "Champhai", "Kolasib", "Serchhip"],
+  "Nagaland": ["Dimapur", "Kohima", "Mokokchung", "Tuensang", "Wokha", "Zunheboto"],
+  "Odisha": ["Bhubaneswar", "Cuttack", "Rourkela", "Puri", "Sambalpur", "Balasore", "Berhampur", "Angul", "Jajpur", "Jharsuguda"],
+  "Puducherry": ["Puducherry City", "Karaikal", "Mahe", "Yanam"],
+  "Punjab": ["Ludhiana", "Amritsar", "Jalandhar", "Patiala", "Bathinda", "Mohali", "Pathankot", "Hoshiarpur", "Moga"],
+  "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur", "Kota", "Ajmer", "Bikaner", "Alwar", "Bhilwara", "Sikar", "Jaisalmer"],
+  "Sikkim": ["Gangtok", "Namchi", "Geyzing", "Mangan"],
+  "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli", "Salem", "Tirunelveli", "Vellore", "Erode", "Thanjavur", "Tuticorin"],
+  "Telangana": ["Hyderabad", "Warangal", "Nizamabad", "Karimnagar", "Khammam", "Ranga Reddy", "Medchal", "Secunderabad", "Nalgonda"],
+  "Tripura": ["Agartala", "Dharmanagar", "Udaipur", "Kailasahar", "Belonia", "Khowai"],
+  "Uttar Pradesh": ["Noida (G.B. Nagar)", "Lucknow", "Kanpur", "Varanasi", "Agra", "Prayagraj", "Ghaziabad", "Meerut", "Aligarh", "Bareilly"],
+  "Uttarakhand": ["Dehradun", "Haridwar", "Nainital", "Rishikesh", "Haldwani", "Roorkee", "Almora", "Pithoragarh"],
+  "West Bengal": ["Kolkata", "Howrah", "Darjeeling", "Hooghly", "Paschim Medinipur", "Purba Bardhaman", "Siliguri", "Asansol", "Kharagpur", "Haldia"]
 };
 
+// Seeded generator that produces realistic numbers for a list of real district names
 export const getDistrictsForState = (stateName, stateAverage) => {
-  // Try to find if hardcoded district array is present
-  if (districtData[stateName]) {
-    // Map list to values and value fields to retain backwards compatibility
-    return districtData[stateName].map(d => ({
-      ...d,
-      value: d.electricityConsumption, // For backwards compatibility
-      electricityConsumption: d.electricityConsumption,
-      carbonEmission: d.carbonEmission
-    }));
-  }
+  const names = realDistrictNames[stateName] || [
+    `${stateName} Metro`, `${stateName} Rural`, `${stateName} Urban`, 
+    `${stateName} Coastal`, `${stateName} North`, `${stateName} South`
+  ];
 
   // Get emission factor for state
   const stateObj = stateData.find(s => s.name === stateName);
   const factor = stateObj ? stateObj.emissionFactor : 0.85;
-
-  const names = [
-    `${stateName} North`, `${stateName} South`, `${stateName} East`, 
-    `${stateName} West`, `${stateName} Central`, `${stateName} Rural`,
-    `${stateName} Metro`, `${stateName} Coastal`
-  ];
 
   let seed = 0;
   for (let i = 0; i < stateName.length; i++) {
@@ -86,21 +63,27 @@ export const getDistrictsForState = (stateName, stateAverage) => {
   };
 
   const list = [];
-  for (let i = 0; i < 6; i++) {
-    const variance = 0.6 + random() * 0.8;
+  names.forEach((name) => {
+    const variance = 0.65 + random() * 0.7; // Realistic range between 65% and 135% of state avg
     const electricityConsumption = Math.round(stateAverage * variance * 100) / 100;
     const carbonEmission = Math.round(electricityConsumption * factor * 100) / 100;
     list.push({
-      name: names[i],
+      name,
       value: electricityConsumption, // For backwards compatibility
       electricityConsumption,
       carbonEmission,
-      pop: `${Math.round(1 + random() * 6)}M`,
-      gdp: Math.round(150000 * (0.5 + random() * 1.0)),
+      pop: `${Math.round(0.5 + random() * 8)}M`,
+      gdp: Math.round(150000 * (0.6 + random() * 1.2)),
       isEmissionEstimated: true
     });
-  }
+  });
+
   return list;
+};
+
+// Hardcoded district data for initial loading of main demo states
+export const districtData = {
+  // Let the seeder dynamically compile everything from the realDistrictNames lookup to keep it uniform
 };
 
 export default districtData;
