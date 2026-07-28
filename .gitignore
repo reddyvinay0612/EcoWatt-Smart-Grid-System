@@ -1,0 +1,23 @@
+# Python Environment
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+backend/ecowatt.db
+
+# Frontend Dependencies & Builds
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# Local App Data / Logs
+.system_generated/
+.gemini/
+brain/
+*.log
+
+# OS Metadata
+.DS_Store
+Thumbs.db
