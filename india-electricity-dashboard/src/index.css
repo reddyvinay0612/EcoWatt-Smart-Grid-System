@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .glass-panel {
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  
+  .light .glass-panel {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .pulse-soft {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+
+/* Accent system variables */
+:root {
+  --accentBlue: #3B82F6;
+  --accentGreen: #10B981;
+  --accentRed: #EF4444;
+  --accentAmber: #F59E0B;
+}
+
+.text-accentBlue {
+  color: var(--accentBlue);
+}
+
+.text-accentGreen {
+  color: var(--accentGreen);
+}
+
+.text-accentRed {
+  color: var(--accentRed);
+}
+
+.text-accentAmber {
+  color: var(--accentAmber);
+}
+
+.bg-accentBlue {
+  background-color: var(--accentBlue);
+}
+
+.bg-accentGreen {
+  background-color: var(--accentGreen);
+}
+
+.bg-accentRed {
+  background-color: var(--accentRed);
+}
+
+.bg-accentAmber {
+  background-color: var(--accentAmber);
+}
