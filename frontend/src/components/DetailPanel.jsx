@@ -1,5 +1,6 @@
 import React from 'react';
 import { Users, Globe, IndianRupee, HelpCircle, Activity, Leaf } from 'lucide-react';
+import OptimizationPanel from './OptimizationPanel';
 
 function DetailPanel({ 
   name, 
@@ -120,6 +121,15 @@ function DetailPanel({
               {gdp ? `₹${gdp.toLocaleString()}` : 'N/A'}
             </span>
           </div>
+        </div>
+
+        {/* Optimization Recommendations Action Center */}
+        <div className="pt-2 border-t border-slate-700/20">
+          <OptimizationPanel 
+            electricityConsumption={electricityConsumption}
+            carbonEmission={carbonEmission}
+            isDarkMode={isDarkMode}
+          />
         </div>
 
       </div>

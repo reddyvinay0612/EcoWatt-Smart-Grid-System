@@ -35,6 +35,7 @@ import FilterButtons from '../components/FilterButtons';
 import { stateData, NATIONAL_AVG, NATIONAL_CARBON_AVG } from '../data/stateData';
 import { getDistrictsForState } from '../data/districtData';
 import getColorScale from '../utils/colorScale';
+import { getOptimizationScore } from '../utils/optimizationEngine';
 
 function NationalAnalytics({ setViewMode }) {
   const [currentView, setCurrentView] = useState('india'); // 'india' or 'state'
@@ -49,6 +50,26 @@ function NationalAnalytics({ setViewMode }) {
   // States for Comparison Tool
   const [compareA, setCompareA] = useState('Maharashtra');
   const [compareB, setCompareB] = useState('Uttar Pradesh');
+
+  // Compute Optimization Rankings for National Leaderboards
+  const stateOptimizationLists = useMemo(() => {
+    const statesWithScores = stateData.map(s => {
+      const score = getOptimizationScore(s.electricityConsumption, s.carbonEmission, NATIONAL_AVG, NATIONAL_CARBON_AVG);
+      return { ...s, score };
+    });
+
+    // Top 5 states needing optimization (highest score descending)
+    const needyStates = [...statesWithScores]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+
+    // Top 5 best performing states (lowest score ascending)
+    const benchmarkStates = [...statesWithScores]
+      .sort((a, b) => a.score - b.score)
+      .slice(0, 5);
+
+    return { needyStates, benchmarkStates };
+  }, []);
 
   // Load districts dynamically when selected state changes
   const districts = useMemo(() => {
@@ -578,6 +599,87 @@ function NationalAnalytics({ setViewMode }) {
         </div>
 
       </div>
+
+      {/* Optimization Leaderboards Section */}
+      {currentView === 'india' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          
+          {/* Needy States Leaderboard */}
+          <div className={`glass-panel p-6 rounded-2xl border transition-all ${
+            isDarkMode ? 'border-darkBorder/40 bg-slate-900/40' : 'border-slate-205 bg-white shadow-sm'
+          }`}>
+            <h4 className="font-bold text-sm text-red-400 mb-4 uppercase tracking-wider flex items-center">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-500 mr-2.5 animate-ping"></span>
+              Top 5 States Needing Optimization
+            </h4>
+            <div className="space-y-3">
+              {stateOptimizationLists.needyStates.map((s, idx) => (
+                <button
+                  key={s.name}
+                  onClick={() => handleSelectState(s.name)}
+                  className={`w-full flex items-center justify-between p-3.5 rounded-xl border text-left transition-all ${
+                    isDarkMode 
+                      ? 'bg-[#060A12]/50 border-slate-850/80 hover:bg-[#060A12] hover:border-slate-700/60' 
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100/80'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3.5">
+                    <span className="text-sm font-black text-red-500 w-4 text-center">{idx + 1}</span>
+                    <div>
+                      <span className="text-xs font-extrabold text-white block">{s.name}</span>
+                      <span className="text-[9px] text-slate-500 font-semibold block mt-0.5">
+                        Urgency Score: {s.score.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right text-[10px] font-extrabold text-slate-400 leading-tight">
+                    <div>{s.electricityConsumption.toLocaleString()} kWh</div>
+                    <div className="text-[9px] text-slate-500 mt-0.5">{s.carbonEmission.toLocaleString()} kg CO2</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Benchmark States Leaderboard */}
+          <div className={`glass-panel p-6 rounded-2xl border transition-all ${
+            isDarkMode ? 'border-darkBorder/40 bg-slate-900/40' : 'border-slate-205 bg-white shadow-sm'
+          }`}>
+            <h4 className="font-bold text-sm text-emerald-400 mb-4 uppercase tracking-wider flex items-center">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-2.5"></span>
+              Best Performing Benchmark States
+            </h4>
+            <div className="space-y-3">
+              {stateOptimizationLists.benchmarkStates.map((s, idx) => (
+                <button
+                  key={s.name}
+                  onClick={() => handleSelectState(s.name)}
+                  className={`w-full flex items-center justify-between p-3.5 rounded-xl border text-left transition-all ${
+                    isDarkMode 
+                      ? 'bg-[#060A12]/50 border-slate-850/80 hover:bg-[#060A12] hover:border-slate-700/60' 
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100/80'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3.5">
+                    <span className="text-sm font-black text-emerald-500 w-4 text-center">{idx + 1}</span>
+                    <div>
+                      <span className="text-xs font-extrabold text-white block">{s.name}</span>
+                      <span className="text-[9px] text-slate-500 font-semibold block mt-0.5">
+                        Clean Score: {s.score.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right text-[10px] font-extrabold text-slate-400 leading-tight">
+                    <div>{s.electricityConsumption.toLocaleString()} kWh</div>
+                    <div className="text-[9px] text-slate-500 mt-0.5">{s.carbonEmission.toLocaleString()} kg CO2</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+        </div>
+      )}
 
       {/* Rankings List Table */}
       <RankingTable 
