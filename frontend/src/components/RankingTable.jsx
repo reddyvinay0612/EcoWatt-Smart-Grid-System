@@ -1,66 +1,92 @@
 import React, { useState } from 'react';
-import { ArrowUpDown } from 'lucide-react';
+import { ArrowUpDown, ArrowDown } from 'lucide-react';
 
 function RankingTable({ data, selectedItem, onSelect, isDarkMode, isNational }) {
-  const [sortConfig, setSortConfig] = useState({ key: 'value', direction: 'desc' });
+  const [sortMetric, setSortMetric] = useState('electricity'); // 'electricity' | 'carbon'
+  const [sortDirection, setSortDirection] = useState('desc'); // 'asc' | 'desc'
+
+  // Map sort keys
+  const sortKey = sortMetric === 'carbon' ? 'carbonEmission' : 'electricityConsumption';
 
   const sortedData = [...data].sort((a, b) => {
-    let valA = a[sortConfig.key];
-    let valB = b[sortConfig.key];
-    if (typeof valA === 'string') {
-      return sortConfig.direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-    }
-    return sortConfig.direction === 'asc' ? valA - valB : valB - valA;
+    // Fallback lookups in case property names vary
+    const valA = a[sortKey] ?? a.value ?? 0;
+    const valB = b[sortKey] ?? b.value ?? 0;
+
+    return sortDirection === 'desc' ? valB - valA : valA - valB;
   });
 
-  const requestSort = (key) => {
-    let direction = 'desc';
-    if (sortConfig.key === key && sortConfig.direction === 'desc') {
-      direction = 'asc';
-    }
-    setSortConfig({ key, direction });
+  const toggleSortDirection = () => {
+    setSortDirection(prev => (prev === 'desc' ? 'asc' : 'desc'));
   };
 
   return (
     <div className={`glass-panel p-6 rounded-2xl border transition-all ${
-      isDarkMode ? 'border-darkBorder/40 bg-slate-900/40' : 'border-slate-200 bg-white shadow-sm'
+      isDarkMode ? 'border-darkBorder/40 bg-slate-900/40' : 'border-slate-205 bg-white shadow-sm'
     }`}>
-      <h3 className={`font-bold text-base mb-4 border-b pb-2 ${isDarkMode ? 'text-white border-slate-800' : 'text-slate-900 border-slate-200'}`}>
-        {isNational ? 'State Energy Rankings' : 'District Energy Rankings'}
-      </h3>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 border-b pb-3 border-slate-700/20">
+        <h3 className={`font-bold text-base ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+          {isNational ? 'State Energy & Emission Rankings' : 'District Energy & Emission Rankings'}
+        </h3>
+        
+        {/* Metric Sorting selector */}
+        <div className="flex items-center space-x-2">
+          <span className="text-xs text-slate-400 font-semibold">Sort By:</span>
+          <select
+            value={sortMetric}
+            onChange={(e) => setSortMetric(e.target.value)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border outline-none ${
+              isDarkMode ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-750'
+            }`}
+          >
+            <option value="electricity">Electricity Consumption</option>
+            <option value="carbon">Carbon Emission</option>
+          </select>
+          
+          <button
+            onClick={toggleSortDirection}
+            className={`p-1.5 rounded-lg border hover:bg-slate-800 transition-all ${
+              isDarkMode ? 'border-slate-800 text-slate-300' : 'border-slate-200 text-slate-600'
+            }`}
+            title={`Sort ${sortDirection === 'desc' ? 'Ascending' : 'Descending'}`}
+          >
+            <ArrowUpDown className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
       <div className="overflow-x-auto max-h-80 overflow-y-auto">
         <table className="w-full text-left text-xs sm:text-sm">
           <thead>
             <tr className="border-b border-slate-700/20 text-slate-400">
               <th className="pb-3 font-semibold text-center w-16">Rank</th>
-              <th className="pb-3 font-semibold cursor-pointer select-none" onClick={() => requestSort('name')}>
-                <div className="flex items-center">
-                  {isNational ? 'State / UT' : 'District'} <ArrowUpDown className="h-3.5 w-3.5 ml-1" />
-                </div>
+              <th className="pb-3 font-semibold">
+                {isNational ? 'State / UT' : 'District'}
               </th>
-              <th className="pb-3 font-semibold cursor-pointer select-none" onClick={() => requestSort('value')}>
-                <div className="flex items-center">
-                  Consumption (kWh) <ArrowUpDown className="h-3.5 w-3.5 ml-1" />
-                </div>
+              <th className="pb-3 font-semibold">
+                Electricity (kWh)
               </th>
-              <th className="pb-3 font-semibold cursor-pointer select-none" onClick={() => requestSort('tier')}>
-                <div className="flex items-center">
-                  Tier <ArrowUpDown className="h-3.5 w-3.5 ml-1" />
-                </div>
+              <th className="pb-3 font-semibold">
+                Carbon (kg CO2)
               </th>
-              <th className="pb-3 font-semibold cursor-pointer select-none" onClick={() => requestSort('pop')}>
-                <div className="flex items-center">
-                  Population <ArrowUpDown className="h-3.5 w-3.5 ml-1" />
-                </div>
+              <th className="pb-3 font-semibold">
+                Active Tier
+              </th>
+              <th className="pb-3 font-semibold">
+                Population
               </th>
             </tr>
           </thead>
           <tbody>
             {sortedData.map((item, idx) => {
-              const globalIdx = [...data]
-                .sort((a, b) => b.value - a.value)
-                .findIndex(x => x.name === item.name) + 1;
-                
+              // Calculate global index under active sort
+              const globalIdx = idx + 1;
+              const elecVal = item.electricityConsumption ?? item.value ?? 0;
+              const carbVal = item.carbonEmission ?? 0;
+              
+              // Get item tier under active sort metric
+              const activeTier = sortMetric === 'carbon' ? item.carbTier ?? item.tier : item.elecTier ?? item.tier;
+
               return (
                 <tr 
                   key={item.name} 
@@ -72,15 +98,18 @@ function RankingTable({ data, selectedItem, onSelect, isDarkMode, isNational }) 
                   }`}
                 >
                   <td className="py-3 font-bold text-center text-slate-400">{globalIdx}</td>
-                  <td className={`py-3 font-semibold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{item.name}</td>
-                  <td className="py-3 font-extrabold">{item.value.toLocaleString()} kWh</td>
+                  <td className={`py-3 font-semibold ${isDarkMode ? 'text-slate-200' : 'text-slate-850'}`}>
+                    {item.name}
+                  </td>
+                  <td className="py-3 font-extrabold">{elecVal.toLocaleString()} kWh</td>
+                  <td className="py-3 font-extrabold text-slate-300">{carbVal.toLocaleString()} kg</td>
                   <td className="py-3">
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                      item.tier === 'High' ? 'bg-accentRed/10 text-accentRed' 
-                      : item.tier === 'Medium' ? 'bg-amber-500/10 text-amber-500' 
+                      activeTier === 'High' ? 'bg-accentRed/10 text-accentRed' 
+                      : activeTier === 'Medium' ? 'bg-amber-500/10 text-amber-500' 
                       : 'bg-accentGreen/10 text-accentGreen'
                     }`}>
-                      {item.tier}
+                      {activeTier}
                     </span>
                   </td>
                   <td className="py-3 text-slate-400 font-medium">{item.pop || 'N/A'}</td>

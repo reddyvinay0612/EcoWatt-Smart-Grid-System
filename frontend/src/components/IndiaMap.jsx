@@ -2,15 +2,24 @@ import React from 'react';
 import India from '@react-map/india';
 import getColorScale from '../utils/colorScale';
 
-function IndiaMap({ stateData, selectedState, onSelectState, tierFilter, isDarkMode }) {
-  // Compute state colors based on filters
+function IndiaMap({ 
+  stateData, 
+  selectedState, 
+  onSelectState, 
+  tierFilter, 
+  isDarkMode, 
+  activeMetric = 'electricity' 
+}) {
+  // Compute state colors dynamically based on active metric
   const stateColors = {};
   stateData.forEach(s => {
-    const isFiltered = tierFilter !== 'All' && s.tier !== tierFilter;
+    const value = activeMetric === 'carbon' ? s.carbonEmission : s.electricityConsumption;
+    const { color, tier } = getColorScale(value, null, activeMetric);
+    
+    const isFiltered = tierFilter !== 'All' && tier !== tierFilter;
     if (isFiltered) {
       stateColors[s.name] = isDarkMode ? '#111827' : '#F3F4F6';
     } else {
-      const { color } = getColorScale(s.value);
       stateColors[s.name] = selectedState === s.name ? '#60A5FA' : color;
     }
   });

@@ -6,26 +6,34 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer 
+  ResponsiveContainer,
+  Legend
 } from 'recharts';
 import { BarChart2 } from 'lucide-react';
 
-function ComparisonChart({ itemA, itemB, averageValue = 1390, averageLabel = 'National Average', isDarkMode }) {
+function ComparisonChart({ 
+  itemA, 
+  itemB, 
+  averageValueElec = 1390, 
+  averageValueCarbon = 1140, 
+  averageLabel = 'National Average', 
+  isDarkMode 
+}) {
   const chartData = [
     { 
       name: itemA?.name || 'Region A', 
-      Consumption: itemA?.value || 0, 
-      fill: itemA?.tier === 'High' ? '#EF4444' : itemA?.tier === 'Medium' ? '#F59E0B' : '#10B981' 
+      Electricity: itemA?.electricityConsumption || 0,
+      Carbon: itemA?.carbonEmission || 0
     },
     { 
       name: itemB?.name || 'Region B', 
-      Consumption: itemB?.value || 0, 
-      fill: itemB?.tier === 'High' ? '#EF4444' : itemB?.tier === 'Medium' ? '#F59E0B' : '#10B981' 
+      Electricity: itemB?.electricityConsumption || 0,
+      Carbon: itemB?.carbonEmission || 0
     },
     { 
       name: averageLabel, 
-      Consumption: averageValue, 
-      fill: '#3B82F6' // Base Blue
+      Electricity: averageValueElec,
+      Carbon: averageValueCarbon
     }
   ];
 
@@ -36,7 +44,7 @@ function ComparisonChart({ itemA, itemB, averageValue = 1390, averageLabel = 'Na
       <div className="flex items-center space-x-2 mb-6 border-b pb-2 border-slate-700/20">
         <BarChart2 className="h-5 w-5 text-accentBlue" />
         <h3 className={`font-bold text-base ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-          Side-by-Side Comparison (kWh)
+          Grouped Metric Auditing (kWh & kg CO2)
         </h3>
       </div>
 
@@ -45,7 +53,7 @@ function ComparisonChart({ itemA, itemB, averageValue = 1390, averageLabel = 'Na
           <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? '#1E293B' : '#E5E7EB'} vertical={false} />
             <XAxis dataKey="name" stroke="#64748B" fontSize={10} tickLine={false} />
-            <YAxis stroke="#64748B" fontSize={10} tickLine={false} axisLine={false} unit=" kWh" />
+            <YAxis stroke="#64748B" fontSize={10} tickLine={false} axisLine={false} />
             <Tooltip 
               contentStyle={{ 
                 backgroundColor: isDarkMode ? '#151D30' : '#FFFFFF', 
@@ -54,11 +62,24 @@ function ComparisonChart({ itemA, itemB, averageValue = 1390, averageLabel = 'Na
               }}
               labelStyle={{ color: '#94A3B8', fontWeight: '600' }}
             />
-            <Bar dataKey="Consumption" radius={[6, 6, 0, 0]} maxBarSize={45}>
-              {chartData.map((entry, index) => (
-                <Bar key={`cell-${index}`} fill={entry.fill} />
-              ))}
-            </Bar>
+            <Legend 
+              wrapperStyle={{ fontSize: '10px', fontWeight: '600', paddingTop: '10px' }}
+              iconSize={8}
+            />
+            <Bar 
+              name="Electricity (kWh)" 
+              dataKey="Electricity" 
+              fill="#3B82F6" 
+              radius={[4, 4, 0, 0]} 
+              maxBarSize={30} 
+            />
+            <Bar 
+              name="Carbon (kg CO2)" 
+              dataKey="Carbon" 
+              fill="#10B981" 
+              radius={[4, 4, 0, 0]} 
+              maxBarSize={30} 
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>

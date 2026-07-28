@@ -32,7 +32,7 @@ import ComparisonChart from '../components/ComparisonChart';
 import FilterButtons from '../components/FilterButtons';
 
 // Import data
-import { stateData, NATIONAL_AVG } from '../data/stateData';
+import { stateData, NATIONAL_AVG, NATIONAL_CARBON_AVG } from '../data/stateData';
 import { getDistrictsForState } from '../data/districtData';
 import getColorScale from '../utils/colorScale';
 
@@ -43,6 +43,9 @@ function NationalAnalytics({ setViewMode }) {
   const [tierFilter, setTierFilter] = useState('All');
   const [isDarkMode, setIsDarkMode] = useState(true);
 
+  // Active Metric state
+  const [activeMetric, setActiveMetric] = useState('electricity'); // 'electricity' | 'carbon'
+
   // States for Comparison Tool
   const [compareA, setCompareA] = useState('Maharashtra');
   const [compareB, setCompareB] = useState('Uttar Pradesh');
@@ -50,7 +53,7 @@ function NationalAnalytics({ setViewMode }) {
   // Load districts dynamically when selected state changes
   const districts = useMemo(() => {
     if (!selectedState) return [];
-    return getDistrictsForState(selectedState, stateData.find(s => s.name === selectedState)?.value || 1000);
+    return getDistrictsForState(selectedState, stateData.find(s => s.name === selectedState)?.electricityConsumption || 1000);
   }, [selectedState]);
 
   // Sync comparison drop-downs when view switches
@@ -68,17 +71,32 @@ function NationalAnalytics({ setViewMode }) {
   const activeDataset = useMemo(() => {
     if (currentView === 'india') {
       return stateData.map(s => {
-        const { tier } = getColorScale(s.value);
-        return { ...s, tier };
+        const { tier: elecTier } = getColorScale(s.electricityConsumption);
+        const { tier: carbTier } = getColorScale(s.carbonEmission, null, 'carbon');
+        return { 
+          ...s, 
+          value: activeMetric === 'carbon' ? s.carbonEmission : s.electricityConsumption, // For backwards compatibility
+          tier: activeMetric === 'carbon' ? carbTier : elecTier,
+          elecTier, 
+          carbTier 
+        };
       });
     } else {
-      const stateAvg = stateData.find(s => s.name === selectedState)?.value || 1000;
+      const stateAvg = stateData.find(s => s.name === selectedState)?.electricityConsumption || 1000;
+      const stateCarbonAvg = stateData.find(s => s.name === selectedState)?.carbonEmission || 800;
       return districts.map(d => {
-        const { tier } = getColorScale(d.value, stateAvg);
-        return { ...d, tier };
+        const { tier: elecTier } = getColorScale(d.electricityConsumption, stateAvg);
+        const { tier: carbTier } = getColorScale(d.carbonEmission, stateCarbonAvg, 'carbon');
+        return { 
+          ...d, 
+          value: activeMetric === 'carbon' ? d.carbonEmission : d.electricityConsumption, // For backwards compatibility
+          tier: activeMetric === 'carbon' ? carbTier : elecTier,
+          elecTier, 
+          carbTier 
+        };
       });
     }
-  }, [currentView, selectedState, districts]);
+  }, [currentView, selectedState, districts, activeMetric]);
 
   // Comparison items lookup
   const comparisonItems = useMemo(() => {
@@ -87,15 +105,15 @@ function NationalAnalytics({ setViewMode }) {
     return { itemA, itemB };
   }, [compareA, compareB, activeDataset]);
 
-  // Scatter correlation data (GDP vs kWh)
+  // Scatter correlation data (Electricity vs Carbon)
   const correlationData = useMemo(() => {
     return activeDataset.map(item => ({
       name: item.name,
-      gdp: (item.gdp || 150000) / 1000, 
-      kwh: item.value,
-      tier: item.tier
+      electricity: item.electricityConsumption ?? item.value ?? 0,
+      carbon: item.carbonEmission ?? 0,
+      tier: activeMetric === 'carbon' ? item.carbTier : item.elecTier
     }));
-  }, [activeDataset]);
+  }, [activeDataset, activeMetric]);
 
   // Navigation handlers
   const handleNavigate = (view, state = null, district = null) => {
@@ -128,7 +146,7 @@ function NationalAnalytics({ setViewMode }) {
     })
       .then((dataUrl) => {
         const link = document.createElement('a');
-        link.download = `${currentView}_electricity_map.png`;
+        link.download = `${currentView}_${activeMetric}_map.png`;
         link.href = dataUrl;
         link.click();
       })
@@ -143,17 +161,61 @@ function NationalAnalytics({ setViewMode }) {
       if (!selectedState) return null;
       const stateObj = stateData.find(s => s.name === selectedState);
       if (!stateObj) return null;
-      const { tier } = getColorScale(stateObj.value);
-      const dev = ((stateObj.value - NATIONAL_AVG) / NATIONAL_AVG) * 100;
-      return { ...stateObj, tier, dev };
+      const elecDev = ((stateObj.electricityConsumption - NATIONAL_AVG) / NATIONAL_AVG) * 100;
+      const carbDev = ((stateObj.carbonEmission - NATIONAL_CARBON_AVG) / NATIONAL_CARBON_AVG) * 100;
+      const { tier: elecTier } = getColorScale(stateObj.electricityConsumption);
+      const { tier: carbTier } = getColorScale(stateObj.carbonEmission, null, 'carbon');
+      return { 
+        name: stateObj.name, 
+        electricityConsumption: stateObj.electricityConsumption, 
+        carbonEmission: stateObj.carbonEmission, 
+        elecTier, 
+        carbTier, 
+        elecDev, 
+        carbDev, 
+        pop: stateObj.pop, 
+        gdp: stateObj.gdp, 
+        isEmissionEstimated: stateObj.isEmissionEstimated 
+      };
     } else {
       if (!selectedDistrict) return null;
-      const stateAvg = stateData.find(s => s.name === selectedState)?.value || 1000;
-      const dev = ((selectedDistrict.value - stateAvg) / stateAvg) * 100;
-      const { tier } = getColorScale(selectedDistrict.value, stateAvg);
-      return { ...selectedDistrict, tier, dev };
+      const stateAvg = stateData.find(s => s.name === selectedState)?.electricityConsumption || 1000;
+      const stateCarbonAvg = stateData.find(s => s.name === selectedState)?.carbonEmission || 800;
+      const elecDev = ((selectedDistrict.electricityConsumption - stateAvg) / stateAvg) * 100;
+      const carbDev = ((selectedDistrict.carbonEmission - stateCarbonAvg) / stateCarbonAvg) * 100;
+      const { tier: elecTier } = getColorScale(selectedDistrict.electricityConsumption, stateAvg);
+      const { tier: carbTier } = getColorScale(selectedDistrict.carbonEmission, stateCarbonAvg, 'carbon');
+      return { 
+        name: selectedDistrict.name, 
+        electricityConsumption: selectedDistrict.electricityConsumption, 
+        carbonEmission: selectedDistrict.carbonEmission, 
+        elecTier, 
+        carbTier, 
+        elecDev, 
+        carbDev, 
+        pop: selectedDistrict.pop, 
+        gdp: selectedDistrict.gdp, 
+        isEmissionEstimated: selectedDistrict.isEmissionEstimated 
+      };
     }
   }, [currentView, selectedState, selectedDistrict]);
+
+  const activeStateAvg = useMemo(() => {
+    if (!selectedState) return 1000;
+    const stateObj = stateData.find(s => s.name === selectedState);
+    if (!stateObj) return 1000;
+    return activeMetric === 'carbon' ? stateObj.carbonEmission : stateObj.electricityConsumption;
+  }, [selectedState, activeMetric]);
+
+  const activeElecAvg = useMemo(() => {
+    if (currentView === 'india') return NATIONAL_AVG;
+    return stateData.find(s => s.name === selectedState)?.electricityConsumption || 1000;
+  }, [currentView, selectedState]);
+
+  const activeCarbonAvg = useMemo(() => {
+    if (currentView === 'india') return NATIONAL_CARBON_AVG;
+    return stateData.find(s => s.name === selectedState)?.carbonEmission || 800;
+  }, [currentView, selectedState]);
 
   const themeClass = isDarkMode ? 'dark bg-[#080C14] text-slate-100' : 'light bg-slate-50 text-slate-800';
 
@@ -164,7 +226,7 @@ function NationalAnalytics({ setViewMode }) {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b pb-6 border-slate-700/30">
         <div>
           <h2 className={`text-3xl font-extrabold tracking-tight ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-            National Electricity Consumption Dashboard
+            National Electricity & Carbon Audit
           </h2>
           <div className="mt-2">
             <Breadcrumb 
@@ -246,6 +308,28 @@ function NationalAnalytics({ setViewMode }) {
               isDarkMode={isDarkMode}
             />
 
+            {/* Metric Selector Switch */}
+            <div className={`flex rounded-xl p-1 border ${
+              isDarkMode ? 'bg-slate-950/40 border-slate-800' : 'bg-slate-200/50 border-slate-300'
+            }`}>
+              <button
+                onClick={() => setActiveMetric('electricity')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  activeMetric === 'electricity' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-205'
+                }`}
+              >
+                Electricity (kWh)
+              </button>
+              <button
+                onClick={() => setActiveMetric('carbon')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  activeMetric === 'carbon' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-205'
+                }`}
+              >
+                Carbon (CO2)
+              </button>
+            </div>
+
             {currentView === 'state' && (
               <button 
                 onClick={() => handleNavigate('india')}
@@ -268,7 +352,10 @@ function NationalAnalytics({ setViewMode }) {
             isDarkMode ? 'border-darkBorder/40 bg-slate-900/10' : 'border-slate-205 bg-white shadow-sm'
           }`}>
             <span className="absolute top-4 left-6 text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-              {currentView === 'india' ? 'India Choropleth View' : `${selectedState} Districts View`}
+              {currentView === 'india' 
+                ? `India Choropleth View (${activeMetric === 'carbon' ? 'Carbon Emission' : 'Electricity Consumption'})` 
+                : `${selectedState} Districts View (${activeMetric === 'carbon' ? 'Carbon Emission' : 'Electricity Consumption'})`
+              }
             </span>
             
             <div className={`w-full flex items-center justify-center my-4 ${
@@ -290,6 +377,7 @@ function NationalAnalytics({ setViewMode }) {
                       onSelectState={handleSelectState}
                       tierFilter={tierFilter}
                       isDarkMode={isDarkMode}
+                      activeMetric={activeMetric}
                     />
                   </motion.div>
                 ) : (
@@ -308,7 +396,8 @@ function NationalAnalytics({ setViewMode }) {
                       onSelectDistrict={setSelectedDistrict}
                       tierFilter={tierFilter}
                       isDarkMode={isDarkMode}
-                      stateAverage={stateData.find(s => s.name === selectedState)?.value || 1000}
+                      stateAverage={activeStateAvg}
+                      activeMetric={activeMetric}
                     />
                   </motion.div>
                 )}
@@ -319,15 +408,21 @@ function NationalAnalytics({ setViewMode }) {
             <div className="w-full flex justify-around border-t pt-4 border-slate-700/25 text-[10px] sm:text-xs">
               <div className="flex items-center space-x-2">
                 <span className="w-3 h-3 bg-accentRed rounded-sm"></span>
-                <span className="text-slate-400">High ({currentView === 'india' ? '>2k' : '>120%'})</span>
+                <span className="text-slate-400">
+                  High ({currentView === 'india' ? (activeMetric === 'carbon' ? '>1600' : '>2000') : '>120%'})
+                </span>
               </div>
               <div className="flex items-center space-x-2">
                 <span className="w-3 h-3 bg-amber-500 rounded-sm"></span>
-                <span className="text-slate-400">Medium ({currentView === 'india' ? '1k-2k' : '80-120%'})</span>
+                <span className="text-slate-400">
+                  Medium ({currentView === 'india' ? (activeMetric === 'carbon' ? '800-1600' : '1000-2000') : '80-120%'})
+                </span>
               </div>
               <div className="flex items-center space-x-2">
                 <span className="w-3 h-3 bg-accentGreen rounded-sm"></span>
-                <span className="text-slate-400">Low ({currentView === 'india' ? '<1k' : '<80%'})</span>
+                <span className="text-slate-400">
+                  Low ({currentView === 'india' ? (activeMetric === 'carbon' ? '<800' : '<1000') : '<80%'})
+                </span>
               </div>
             </div>
           </div>
@@ -335,16 +430,20 @@ function NationalAnalytics({ setViewMode }) {
 
         {/* Right Panel (Details panel) - Span 4/5 */}
         <div className={`${currentView === 'state' ? 'lg:col-span-4' : 'lg:col-span-5'} space-y-6 flex flex-col`}>
-          <Legend view={currentView} isDarkMode={isDarkMode} />
+          <Legend view={currentView} isDarkMode={isDarkMode} activeMetric={activeMetric} />
           
           {detailItem ? (
             <DetailPanel 
               name={detailItem.name}
-              value={detailItem.value}
-              tier={detailItem.tier}
+              electricityConsumption={detailItem.electricityConsumption}
+              carbonEmission={detailItem.carbonEmission}
+              elecTier={detailItem.elecTier}
+              carbTier={detailItem.carbTier}
+              elecDev={detailItem.elecDev}
+              carbDev={detailItem.carbDev}
               pop={detailItem.pop}
               gdp={detailItem.gdp}
-              comparisonToAvg={detailItem.dev}
+              isEmissionEstimated={detailItem.isEmissionEstimated}
               isDarkMode={isDarkMode}
               averageLabel={currentView === 'india' ? 'national average' : 'state average'}
               onClose={() => {
@@ -367,7 +466,7 @@ function NationalAnalytics({ setViewMode }) {
         </div>
       </div>
 
-      {/* Comparison Tool & GDP Scatter Correlation row */}
+      {/* Comparison Tool & Carbon vs Electricity Scatter Correlation row */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* Comparison Tool - Span 6 */}
@@ -411,20 +510,21 @@ function NationalAnalytics({ setViewMode }) {
           <ComparisonChart 
             itemA={comparisonItems.itemA}
             itemB={comparisonItems.itemB}
-            averageValue={currentView === 'india' ? NATIONAL_AVG : (stateData.find(s => s.name === selectedState)?.value || 1000)}
+            averageValueElec={activeElecAvg}
+            averageValueCarbon={activeCarbonAvg}
             averageLabel={currentView === 'india' ? 'National Average' : 'State Average'}
             isDarkMode={isDarkMode}
           />
         </div>
 
-        {/* Correlation Scatter Chart - Span 6 */}
+        {/* Correlation Scatter Chart: Electricity vs Carbon - Span 6 */}
         <div className={`lg:col-span-6 glass-panel p-6 rounded-2xl border ${
           isDarkMode ? 'border-darkBorder/40 bg-slate-900/40' : 'border-slate-200 bg-white shadow-sm'
         }`}>
           <div className="flex items-center space-x-2 mb-6 border-b pb-2 border-slate-700/20">
             <TrendingUp className="h-5 w-5 text-accentGreen" />
             <h3 className={`font-bold text-base ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-              Consumption vs. GDP Per Capita Correlation
+              Electricity Consumption vs. Carbon Emissions Correlation
             </h3>
           </div>
           <div className="h-64 w-full">
@@ -433,21 +533,21 @@ function NationalAnalytics({ setViewMode }) {
                 <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? '#1E293B' : '#E5E7EB'} />
                 <XAxis 
                   type="number" 
-                  dataKey="gdp" 
-                  name="GDP Per Capita" 
-                  unit="k" 
-                  stroke="#64748B" 
-                  fontSize={10}
-                  label={{ value: 'GDP (₹ in Thousands)', position: 'insideBottom', offset: -10, fill: '#64748B', fontSize: 10 }}
-                />
-                <YAxis 
-                  type="number" 
-                  dataKey="kwh" 
-                  name="Energy Consumption" 
+                  dataKey="electricity" 
+                  name="Electricity" 
                   unit=" kWh" 
                   stroke="#64748B" 
                   fontSize={10}
-                  label={{ value: 'Per Capita (kWh)', angle: -90, position: 'insideLeft', offset: 0, fill: '#64748B', fontSize: 10 }}
+                  label={{ value: 'Per Capita Consumption (kWh)', position: 'insideBottom', offset: -10, fill: '#64748B', fontSize: 10 }}
+                />
+                <YAxis 
+                  type="number" 
+                  dataKey="carbon" 
+                  name="Carbon" 
+                  unit=" kg" 
+                  stroke="#64748B" 
+                  fontSize={10}
+                  label={{ value: 'Per Capita Emission (kg CO2)', angle: -90, position: 'insideLeft', offset: 0, fill: '#64748B', fontSize: 10 }}
                 />
                 <ZAxis range={[60, 300]} />
                 <ChartTooltip 
@@ -460,8 +560,11 @@ function NationalAnalytics({ setViewMode }) {
                           isDarkMode ? 'bg-[#151D30] border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-800'
                         }`}>
                           <p className="font-bold">{data.name}</p>
-                          <p>Consumption: <span className="font-bold">{data.kwh.toLocaleString()} kWh</span></p>
-                          <p>GDP: <span className="font-bold">₹{(data.gdp * 1000).toLocaleString()}</span></p>
+                          <p>Electricity: <span className="font-bold">{data.electricity.toLocaleString()} kWh</span></p>
+                          <p>Carbon: <span className="font-bold">{data.carbon.toLocaleString()} kg CO2</span></p>
+                          <p className="text-[9px] italic text-slate-500">
+                            Ratio: {(data.carbon / data.electricity).toFixed(2)} kg/kWh
+                          </p>
                         </div>
                       );
                     }
@@ -491,7 +594,7 @@ function NationalAnalytics({ setViewMode }) {
         isNational={currentView === 'india'}
       />
       <div className="text-[10px] text-slate-500 text-center font-medium italic">
-        * Footnote: District-level values are illustrative estimates generated relative to the respective state averages.
+        * Footnote: Carbon emission figures are estimated for illustrative purposes from assumed local renewable ratios.
       </div>
     </div>
   );

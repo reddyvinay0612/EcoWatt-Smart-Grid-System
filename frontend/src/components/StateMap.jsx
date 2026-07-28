@@ -3,7 +3,16 @@ import stateMapFiles from '../data/stateMapFiles';
 import getColorScale from '../utils/colorScale';
 import { ShieldAlert, Loader } from 'lucide-react';
 
-function StateMap({ selectedState, districts, selectedDistrict, onSelectDistrict, tierFilter, isDarkMode, stateAverage }) {
+function StateMap({ 
+  selectedState, 
+  districts, 
+  selectedDistrict, 
+  onSelectDistrict, 
+  tierFilter, 
+  isDarkMode, 
+  stateAverage, // Active metric average for this state
+  activeMetric = 'electricity'
+}) {
   const [imgLoading, setImgLoading] = useState(true);
   const [imgError, setImgError] = useState(false);
   const [hoveredPin, setHoveredPin] = useState(null);
@@ -37,7 +46,7 @@ function StateMap({ selectedState, districts, selectedDistrict, onSelectDistrict
         isDarkMode ? 'border-darkBorder/40 bg-slate-900/10' : 'border-slate-200 bg-white'
       }`}>
         <ShieldAlert className="h-10 w-10 text-amber-500 mb-4 animate-pulse" />
-        <h4 className="font-bold text-sm text-slate-350 dark:text-slate-200">
+        <h4 className="font-bold text-sm text-slate-300 dark:text-slate-205">
           District map not available for this state yet
         </h4>
         <p className="text-xs text-slate-500 mt-2 max-w-[280px] leading-relaxed">
@@ -78,10 +87,11 @@ function StateMap({ selectedState, districts, selectedDistrict, onSelectDistrict
 
           {/* Interactive Colored Hotspot Pins Overlay */}
           {!imgLoading && districts.map((d, index) => {
-            const { color } = getColorScale(d.value, stateAverage);
+            const value = activeMetric === 'carbon' ? d.carbonEmission : d.electricityConsumption;
+            const { color, tier } = getColorScale(value, stateAverage, activeMetric);
             const pos = getPinPosition(index);
             const isSelected = selectedDistrict?.name === d.name;
-            const isFiltered = tierFilter !== 'All' && d.tier !== tierFilter;
+            const isFiltered = tierFilter !== 'All' && tier !== tierFilter;
 
             if (isFiltered) return null;
 
@@ -110,7 +120,7 @@ function StateMap({ selectedState, districts, selectedDistrict, onSelectDistrict
                 {/* Local Tooltip on Hover */}
                 {hoveredPin === d.name && (
                   <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-[#151D30] border border-slate-700/40 text-white text-[10px] font-bold py-1.5 px-2.5 rounded-lg whitespace-nowrap shadow-xl z-50">
-                    {d.name} ({d.value} kWh)
+                    {d.name} ({value} {activeMetric === 'carbon' ? 'kg CO2' : 'kWh'})
                   </div>
                 )}
               </div>
@@ -125,13 +135,14 @@ function StateMap({ selectedState, districts, selectedDistrict, onSelectDistrict
           Select District
         </h5>
         {districts.map((d) => {
-          const { color } = getColorScale(d.value, stateAverage);
+          const value = activeMetric === 'carbon' ? d.carbonEmission : d.electricityConsumption;
+          const { color, tier } = getColorScale(value, stateAverage, activeMetric);
           const isSelected = selectedDistrict?.name === d.name;
-          const isFiltered = tierFilter !== 'All' && d.tier !== tierFilter;
+          const isFiltered = tierFilter !== 'All' && tier !== tierFilter;
 
           if (isFiltered) return null;
 
-          const dev = ((d.value - stateAverage) / stateAverage) * 100;
+          const dev = ((value - stateAverage) / stateAverage) * 100;
 
           return (
             <button
@@ -147,10 +158,12 @@ function StateMap({ selectedState, districts, selectedDistrict, onSelectDistrict
             >
               <div className="w-full flex items-center justify-between font-bold mb-1 text-xs">
                 <span>{d.name}</span>
-                <span style={{ color }}>{d.value.toLocaleString()} kWh</span>
+                <span style={{ color }}>
+                  {value.toLocaleString()} {activeMetric === 'carbon' ? 'kg' : 'kWh'}
+                </span>
               </div>
               <div className="w-full flex items-center justify-between text-[10px] text-slate-500 font-semibold">
-                <span className="capitalize">{d.tier} Consumption</span>
+                <span className="capitalize">{tier} Tier</span>
                 <span className={dev > 0 ? 'text-accentRed' : 'text-accentGreen'}>
                   {dev > 0 ? '+' : ''}{dev.toFixed(0)}% vs avg
                 </span>
