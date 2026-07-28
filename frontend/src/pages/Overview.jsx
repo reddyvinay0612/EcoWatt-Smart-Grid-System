@@ -24,8 +24,57 @@ import {
 } from 'lucide-react';
 
 import { dataService, carbonService, anomalyService, optimizeService } from '../services/api';
+import India from '@react-map/india';
+
+const stateData = {
+  'Andaman and Nicobar Islands': { value: 900.00, tier: 'Low' },
+  'Andhra Pradesh': { value: 2299.25, tier: 'High' },
+  'Arunachal Pradesh': { value: 2562.09, tier: 'High' },
+  'Assam': { value: 1069.96, tier: 'Medium' },
+  'Bihar': { value: 835.03, tier: 'Low' },
+  'Chandigarh': { value: 2000.00, tier: 'Medium' },
+  'Chhattisgarh': { value: 3105.21, tier: 'High' },
+  'Dadra and Nagar Haveli': { value: 15642.35, tier: 'High' },
+  'Daman and Diu': { value: 15642.35, tier: 'High' },
+  'Delhi': { value: 3636.70, tier: 'High' },
+  'Goa': { value: 5485.87, tier: 'High' },
+  'Gujarat': { value: 4646.19, tier: 'High' },
+  'Haryana': { value: 4875.30, tier: 'High' },
+  'Himachal Pradesh': { value: 3214.53, tier: 'High' },
+  'Jammu and Kashmir': { value: 2452.77, tier: 'High' },
+  'Jharkhand': { value: 1760.78, tier: 'Medium' },
+  'Karnataka': { value: 3357.58, tier: 'High' },
+  'Kerala': { value: 2486.49, tier: 'High' },
+  'Ladakh': { value: 2000.00, tier: 'Medium' },
+  'Lakshadweep': { value: 800.00, tier: 'Low' },
+  'Madhya Pradesh': { value: 1958.49, tier: 'Medium' },
+  'Maharashtra': { value: 2990.07, tier: 'High' },
+  'Manipur': { value: 1370.01, tier: 'Medium' },
+  'Meghalaya': { value: 2688.86, tier: 'High' },
+  'Mizoram': { value: 2024.78, tier: 'High' },
+  'Nagaland': { value: 1079.26, tier: 'Medium' },
+  'Odisha': { value: 2598.14, tier: 'High' },
+  'Puducherry': { value: 4479.88, tier: 'High' },
+  'Punjab': { value: 4120.51, tier: 'High' },
+  'Rajasthan': { value: 2544.64, tier: 'High' },
+  'Sikkim': { value: 2863.31, tier: 'High' },
+  'Tamil Nadu': { value: 3659.96, tier: 'High' },
+  'Telangana': { value: 4162.38, tier: 'High' },
+  'Tripura': { value: 1102.52, tier: 'Medium' },
+  'Uttar Pradesh': { value: 1502.60, tier: 'Medium' },
+  'Uttarakhand': { value: 2974.95, tier: 'High' },
+  'West Bengal': { value: 1508.41, tier: 'Medium' }
+};
+
+const stateColors = {};
+Object.keys(stateData).forEach(state => {
+  const tier = stateData[state].tier;
+  stateColors[state] = tier === 'High' ? '#EF4444' : tier === 'Medium' ? '#F59E0B' : '#10B981';
+});
 
 function Overview({ consumerId, activeConsumer }) {
+  const [viewMode, setViewMode] = useState('national'); // 'national' or 'local'
+  const [selectedState, setSelectedState] = useState(null);
   const [historyData, setHistoryData] = useState([]);
   const [carbonSummary, setCarbonSummary] = useState(null);
   const [recentAnomalies, setRecentAnomalies] = useState([]);
@@ -72,7 +121,7 @@ function Overview({ consumerId, activeConsumer }) {
     };
   }, [consumerId]);
 
-  if (isLoading && historyData.length === 0) {
+  if (viewMode === 'local' && isLoading && historyData.length === 0) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-slate-400 text-sm pulse-soft">Loading system status...</div>
@@ -89,6 +138,167 @@ function Overview({ consumerId, activeConsumer }) {
   // Calculate renewable offset percentage
   const renewRatio = currentLoad > 0 ? (currentRenew / currentLoad) * 100 : 0;
 
+  if (viewMode === 'national') {
+    return (
+      <div className="space-y-8">
+        {/* Title Header */}
+        <div className="flex justify-between items-start">
+          <div>
+            <h2 className="text-2xl font-bold text-white tracking-tight">National Energy Map</h2>
+            <p className="text-slate-400 text-sm mt-1">
+              Interactive choropleth map showing per-capita electricity consumption by state (kWh)
+            </p>
+          </div>
+          {/* View Mode Toggle */}
+          <div className="flex bg-[#0F1626] border border-darkBorder p-1 rounded-xl">
+            <button
+              onClick={() => setViewMode('national')}
+              className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-accentBlue text-white shadow transition-all"
+            >
+              National Energy Map
+            </button>
+            <button
+              onClick={() => setViewMode('local')}
+              className="px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 transition-all"
+            >
+              Local Node Telemetry
+            </button>
+          </div>
+        </div>
+
+        {/* Map Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Left Column: Interactive Map */}
+          <div className="glass-panel p-6 rounded-2xl border border-darkBorder/40 lg:col-span-7 flex flex-col items-center justify-center relative min-h-[500px]">
+            <span className="absolute top-4 left-6 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              India Choropleth View
+            </span>
+            <div className="w-full max-w-[450px] aspect-square flex items-center justify-center my-6">
+              <India
+                type="select-single"
+                size={400}
+                mapColor="#1E293B"
+                strokeColor="#0B0F19"
+                strokeWidth={1.5}
+                hoverColor="#38BDF8"
+                selectColor="#60A5FA"
+                cityColors={stateColors}
+                onSelect={(stateCode) => setSelectedState(stateCode)}
+                hints={true}
+                hintTextColor="#FFFFFF"
+                hintBackgroundColor="#151D30"
+                hintPadding="8px 12px"
+                hintBorderRadius={8}
+              />
+            </div>
+          </div>
+
+          {/* Right Column: Selected State Details & Legend */}
+          <div className="lg:col-span-5 space-y-6 flex flex-col">
+            {/* Selected State Details Card */}
+            <div className="glass-panel p-6 rounded-2xl border border-darkBorder/40 flex-1 flex flex-col justify-between">
+              <div>
+                <h3 className="font-bold text-white text-base mb-4 border-b border-darkBorder/40 pb-2">
+                  State-wise Inspection
+                </h3>
+                {selectedState ? (
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xl font-bold text-white">{selectedState}</span>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        stateData[selectedState]?.tier === 'High' 
+                          ? 'bg-accentRed/10 border border-accentRed/25 text-accentRed'
+                          : stateData[selectedState]?.tier === 'Medium'
+                          ? 'bg-amber-500/10 border border-amber-500/25 text-amber-500'
+                          : 'bg-accentGreen/10 border border-accentGreen/25 text-accentGreen'
+                      }`}>
+                        {stateData[selectedState]?.tier} Consumption
+                      </span>
+                    </div>
+
+                    <div className="space-y-4 bg-[#0B0F19] p-4 rounded-xl border border-darkBorder/40">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-slate-400 font-medium">Per Capita Consumption</span>
+                        <span className="text-lg font-bold text-white">
+                          {stateData[selectedState]?.value.toLocaleString()} kWh
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center border-t border-darkBorder/40 pt-3">
+                        <span className="text-xs text-slate-400 font-medium">National Average Comparison</span>
+                        <div className="text-right">
+                          <span className={`text-sm font-bold block ${
+                            stateData[selectedState]?.value > 1390 ? 'text-accentRed' : 'text-accentGreen'
+                          }`}>
+                            {stateData[selectedState]?.value > 1390 ? '+' : ''}
+                            {((stateData[selectedState]?.value - 1390) / 1390 * 100).toFixed(1)}%
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-medium block">
+                            vs 1,390 kWh baseline
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-slate-400 text-xs">
+                    <p className="pulse-soft font-medium">Click on any state on the map to inspect details.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* National Baseline Comparison Card */}
+              <div className="bg-[#0B0F19]/50 border border-darkBorder/30 p-4 rounded-xl space-y-3 mt-6">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400">National Average:</span>
+                  <span className="font-bold text-slate-200">1,390 kWh</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400">Highest (Daman & Diu):</span>
+                  <span className="font-bold text-accentRed">15,642 kWh</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400">Lowest (Bihar):</span>
+                  <span className="font-bold text-accentGreen">835 kWh</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Map Legend Card */}
+            <div className="glass-panel p-6 rounded-2xl border border-darkBorder/40">
+              <h4 className="font-bold text-white text-xs uppercase tracking-wider mb-4">
+                Consumption Ranges
+              </h4>
+              <div className="space-y-3.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2.5">
+                    <span className="w-3.5 h-3.5 bg-accentRed rounded-md shadow-sm shadow-red-500/20"></span>
+                    <span className="text-slate-300 font-medium">High Consumption</span>
+                  </div>
+                  <span className="text-slate-400 font-semibold">&gt; 2,000 kWh</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2.5">
+                    <span className="w-3.5 h-3.5 bg-amber-500 rounded-md shadow-sm shadow-amber-500/20"></span>
+                    <span className="text-slate-300 font-medium">Medium Consumption</span>
+                  </div>
+                  <span className="text-slate-400 font-semibold">1,000 – 2,000 kWh</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2.5">
+                    <span className="w-3.5 h-3.5 bg-accentGreen rounded-md shadow-sm shadow-emerald-500/20"></span>
+                    <span className="text-slate-300 font-medium">Low Consumption</span>
+                  </div>
+                  <span className="text-slate-400 font-semibold">&lt; 1,000 kWh</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Page Title & Building Meta */}
@@ -99,9 +309,26 @@ function Overview({ consumerId, activeConsumer }) {
             Real-time energy tracking for <span className="text-slate-200 font-semibold">{activeConsumer?.name}</span> ({activeConsumer?.location})
           </p>
         </div>
-        <div className="bg-darkCard px-4 py-2 border border-darkBorder rounded-xl text-right">
-          <span className="text-[10px] font-bold text-accentBlue uppercase tracking-wider block">Consumer Class</span>
-          <span className="text-sm font-semibold text-slate-200">{activeConsumer?.class_type} Profile</span>
+        <div className="flex items-center space-x-4">
+          {/* View Mode Toggle */}
+          <div className="flex bg-[#0F1626] border border-darkBorder p-1 rounded-xl">
+            <button
+              onClick={() => setViewMode('national')}
+              className="px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200 transition-all"
+            >
+              National Energy Map
+            </button>
+            <button
+              onClick={() => setViewMode('local')}
+              className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-accentBlue text-white shadow transition-all"
+            >
+              Local Node Telemetry
+            </button>
+          </div>
+          <div className="bg-darkCard px-4 py-2 border border-darkBorder rounded-xl text-right">
+            <span className="text-[10px] font-bold text-accentBlue uppercase tracking-wider block">Consumer Class</span>
+            <span className="text-sm font-semibold text-slate-200">{activeConsumer?.class_type} Profile</span>
+          </div>
         </div>
       </div>
 
