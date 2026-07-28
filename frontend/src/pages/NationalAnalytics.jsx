@@ -16,7 +16,8 @@ import {
   Moon, 
   Download, 
   TrendingUp, 
-  HelpCircle 
+  HelpCircle,
+  ArrowLeft
 } from 'lucide-react';
 
 // Import components
