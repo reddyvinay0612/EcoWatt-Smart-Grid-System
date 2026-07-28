@@ -64,7 +64,7 @@ function StateMap({ selectedState, districts, selectedDistrict, onSelectDistrict
         )}
 
         {/* Map Image container */}
-        <div className="relative w-full max-w-[340px] aspect-square flex items-center justify-center">
+        <div className="relative w-full max-w-[480px] aspect-square flex items-center justify-center">
           <img
             src={mapPath}
             alt={`${selectedState} Map`}
@@ -120,7 +120,7 @@ function StateMap({ selectedState, districts, selectedDistrict, onSelectDistrict
       </div>
 
       {/* Right side: Clickable District Badges List */}
-      <div className="w-full md:w-56 flex flex-col justify-start space-y-2 max-h-[360px] overflow-y-auto pr-1">
+      <div className="w-full md:w-64 flex flex-col justify-start space-y-2 max-h-[380px] overflow-y-auto pr-1">
         <h5 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">
           Select District
         </h5>
@@ -131,23 +131,30 @@ function StateMap({ selectedState, districts, selectedDistrict, onSelectDistrict
 
           if (isFiltered) return null;
 
+          const dev = ((d.value - stateAverage) / stateAverage) * 100;
+
           return (
             <button
               key={d.name}
               onClick={() => onSelectDistrict(d)}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-xs font-semibold text-left transition-all ${
+              className={`w-full flex flex-col p-3 rounded-xl border text-left transition-all ${
                 isSelected 
                   ? 'bg-blue-600/10 border-blue-500 text-blue-400 font-bold'
                   : isDarkMode
-                  ? 'bg-[#0F1626]/50 border-darkBorder/40 text-slate-350 hover:bg-[#0F1626] hover:text-white'
+                  ? 'bg-[#0F1626]/50 border-darkBorder/40 text-slate-300 hover:bg-[#0F1626] hover:text-white'
                   : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
-              <div className="flex items-center space-x-2">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }}></span>
+              <div className="w-full flex items-center justify-between font-bold mb-1 text-xs">
                 <span>{d.name}</span>
+                <span style={{ color }}>{d.value.toLocaleString()} kWh</span>
               </div>
-              <span className="text-[10px] opacity-75">{d.value} kWh</span>
+              <div className="w-full flex items-center justify-between text-[10px] text-slate-500 font-semibold">
+                <span className="capitalize">{d.tier} Consumption</span>
+                <span className={dev > 0 ? 'text-accentRed' : 'text-accentGreen'}>
+                  {dev > 0 ? '+' : ''}{dev.toFixed(0)}% vs avg
+                </span>
+              </div>
             </button>
           );
         })}

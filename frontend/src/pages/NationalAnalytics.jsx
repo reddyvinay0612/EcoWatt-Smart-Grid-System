@@ -229,8 +229,8 @@ function NationalAnalytics({ setViewMode }) {
       {/* Main Grid View */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* Left / Center Panel (Map & Filters) - Span 7 */}
-        <div className="lg:col-span-7 space-y-6">
+        {/* Left / Center Panel (Map & Filters) - Span 7/8 */}
+        <div className={`${currentView === 'state' ? 'lg:col-span-8' : 'lg:col-span-7'} space-y-6`}>
           
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
             <SearchBar 
@@ -271,7 +271,9 @@ function NationalAnalytics({ setViewMode }) {
               {currentView === 'india' ? 'India Choropleth View' : `${selectedState} Districts View`}
             </span>
             
-            <div className="w-full max-w-[440px] aspect-square flex items-center justify-center my-4 map">
+            <div className={`w-full flex items-center justify-center my-4 ${
+              currentView === 'india' ? 'max-w-[440px] aspect-square' : 'max-w-[780px] w-full'
+            } map`}>
               <AnimatePresence mode="wait">
                 {currentView === 'india' ? (
                   <motion.div
@@ -331,8 +333,8 @@ function NationalAnalytics({ setViewMode }) {
           </div>
         </div>
 
-        {/* Right Panel (Details panel) - Span 5 */}
-        <div className="lg:col-span-5 space-y-6 flex flex-col">
+        {/* Right Panel (Details panel) - Span 4/5 */}
+        <div className={`${currentView === 'state' ? 'lg:col-span-4' : 'lg:col-span-5'} space-y-6 flex flex-col`}>
           <Legend view={currentView} isDarkMode={isDarkMode} />
           
           {detailItem ? (
