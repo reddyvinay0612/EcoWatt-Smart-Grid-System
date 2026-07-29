@@ -56,3 +56,14 @@
 .pulse-soft {
   animation: pulse-soft 2s infinite ease-in-out;
 }
+
+/* Ensure select option dropdown text visibility in both dark and light mode */
+select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html.dark select option {
+  background-color: #131824 !important;
+  color: #f1f5f9 !important;
+}
