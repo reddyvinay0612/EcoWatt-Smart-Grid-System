@@ -121,7 +121,10 @@ STATE_BASE_DATA = {
 }
 
 def predict_future(model, periods=5):
-    future = model.make_future_dataframe(periods=periods, freq="Y")
+    try:
+        future = model.make_future_dataframe(periods=periods, freq="YE")
+    except ValueError:
+        future = model.make_future_dataframe(periods=periods, freq="Y")
     forecast = model.predict(future)
     # Format ds to string e.g. "2026", "2027" for clean React graphing
     forecast["ds"] = forecast["ds"].dt.strftime("%Y")

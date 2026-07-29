@@ -26,7 +26,8 @@ function PredictionPanel({ stateName, activeMetric = 'electricity', isDarkMode }
       try {
         const response = await fetch(`http://localhost:8000/predict/${encodeURIComponent(stateName)}/${activeMetric}?years_ahead=5`);
         if (!response.ok) {
-          throw new Error("Forecasting model not trained for this state yet.");
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.detail || "Forecasting model not trained for this state yet.");
         }
         const records = await response.json();
         

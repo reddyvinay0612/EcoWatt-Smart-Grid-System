@@ -37,7 +37,8 @@ function OptimizationResultPanel({ stateName, isDarkMode }) {
       try {
         const response = await fetch(`http://localhost:8000/optimize/${encodeURIComponent(stateName)}?budget=${debouncedBudget}`);
         if (!response.ok) {
-          throw new Error("Baseline data not available for this state.");
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.detail || "Baseline data not available for this state.");
         }
         const data = await response.json();
         setResult(data);
