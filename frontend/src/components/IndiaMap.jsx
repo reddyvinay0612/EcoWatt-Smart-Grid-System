@@ -10,7 +10,6 @@ function IndiaMap({
   isDarkMode, 
   activeMetric = 'electricity' 
 }) {
-  // Compute state colors dynamically based on active metric
   const stateColors = {};
   stateData.forEach(s => {
     const value = activeMetric === 'carbon' ? s.carbonEmission : s.electricityConsumption;
@@ -18,18 +17,18 @@ function IndiaMap({
     
     const isFiltered = tierFilter !== 'All' && tier !== tierFilter;
     if (isFiltered) {
-      stateColors[s.name] = isDarkMode ? '#111827' : '#F3F4F6';
+      stateColors[s.name] = isDarkMode ? '#1E293B' : '#F3F4F6';
     } else {
       stateColors[s.name] = selectedState === s.name ? '#60A5FA' : color;
     }
   });
 
   return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center min-h-[450px]">
-      <div className="w-full max-w-[400px] aspect-square flex items-center justify-center my-4">
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyCenter: 'center', padding: '10px 0' }}>
+      <div style={{ width: '100%', maxWidth: 360, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <India
           type="select-single"
-          size={380}
+          size={320}
           mapColor={isDarkMode ? '#1E293B' : '#E5E7EB'}
           strokeColor={isDarkMode ? '#0B0F19' : '#FFFFFF'}
           strokeWidth={1.5}

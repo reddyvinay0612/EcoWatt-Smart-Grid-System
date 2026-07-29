@@ -7,10 +7,10 @@ const COLORS = ['#3B82F6','#4f76e0','#5b6de0','#6b5ce0','#7c3aed','#8b3ae0','#A8
 
 export default function ForecastBarChart() {
   return (
-    <div style={{ background: '#131824', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '12px 14px' }}>
-      <div style={{ fontSize: 10, fontWeight: 900, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>7 Day Energy Forecast</div>
-      <div style={{ height: 150 }}>
-        <ResponsiveContainer width="100%" height="100%">
+    <div style={{ background: '#131824', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '12px 14px', overflow: 'hidden' }}>
+      <div style={{ fontSize: 10, fontWeight: 900, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 }}>7 Day Energy Forecast</div>
+      <div style={{ width: '100%', height: 130 }}>
+        <ResponsiveContainer width="100%" height={130}>
           <BarChart data={DATA} margin={{ top: 5, right: 4, left: -30, bottom: 0 }}>
             <defs>
               {DATA.map((_, i) => (

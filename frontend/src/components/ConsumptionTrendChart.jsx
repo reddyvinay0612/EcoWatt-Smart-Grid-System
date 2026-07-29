@@ -9,8 +9,8 @@ export default function ConsumptionTrendChart() {
   const [range, setRange] = useState('This Week');
 
   return (
-    <div style={{ background: '#131824', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '12px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+    <div style={{ background: '#131824', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '12px 14px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexShrink: 0 }}>
         <div style={{ fontSize: 10, fontWeight: 900, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Energy Consumption Trend</div>
         <div style={{ position: 'relative' }}>
           <select value={range} onChange={e => setRange(e.target.value)}
@@ -21,8 +21,8 @@ export default function ConsumptionTrendChart() {
         </div>
       </div>
 
-      <div style={{ flex: 1, minHeight: 130 }}>
-        <ResponsiveContainer width="100%" height="100%">
+      <div style={{ width: '100%', height: 130 }}>
+        <ResponsiveContainer width="100%" height={130}>
           <AreaChart data={DATA} margin={{ top: 5, right: 4, left: -30, bottom: 0 }}>
             <defs>
               <linearGradient id="tG" x1="0" y1="0" x2="0" y2="1">
