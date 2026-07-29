@@ -190,7 +190,7 @@ export default function NationalAnalytics() {
             </div>
           </div>
 
-          <div className="map-export" style={{ height: 380 }}>
+          <div className="map-export" style={{ height: 490 }}>
             <LiveNationalMap 
               selectedState={selectedState} 
               onSelectState={handleSelectState} 

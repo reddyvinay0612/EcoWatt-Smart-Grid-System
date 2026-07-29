@@ -24,41 +24,42 @@ export default function KpiCardsRow() {
   const valueColor = isDarkMode ? '#FFFFFF' : '#0F172A';
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 10 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 8 }}>
       {CARDS.map((c) => (
         <div key={c.label} style={{
           background: cardBg,
           border: `1px solid ${cardBorder}`,
-          borderRadius: 12,
-          padding: '12px 14px',
+          borderRadius: 10,
+          padding: '6px 10px',
           cursor: 'default',
           transition: 'all 0.2s',
-          boxShadow: isDarkMode ? 'none' : '0 2px 8px rgba(0,0,0,0.04)'
+          boxShadow: isDarkMode ? 'none' : '0 2px 6px rgba(0,0,0,0.03)'
         }}>
 
-          <div style={{ background: c.bg, borderRadius: 8, padding: 6, display: 'inline-flex', marginBottom: 8 }}>
-            <c.Icon size={14} color={c.color} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <div style={{ background: c.bg, borderRadius: 6, padding: 4, display: 'inline-flex' }}>
+              <c.Icon size={11} color={c.color} />
+            </div>
+            <div style={{ fontSize: 8, fontWeight: 800, color: labelColor, textTransform: 'uppercase', letterSpacing: '0.08em', lineHeight: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {c.label}
+            </div>
           </div>
 
-          <div style={{ fontSize: 9, fontWeight: 800, color: labelColor, textTransform: 'uppercase', letterSpacing: '0.1em', lineHeight: 1 }}>
-            {c.label}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 4 }}>
-            <span style={{ fontSize: 22, fontWeight: 900, color: valueColor, lineHeight: 1 }}>{c.value}</span>
-            {c.unit && <span style={{ fontSize: 10, fontWeight: 700, color: labelColor }}>{c.unit}</span>}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+            <span style={{ fontSize: 16, fontWeight: 900, color: valueColor, lineHeight: 1 }}>{c.value}</span>
+            {c.unit && <span style={{ fontSize: 8, fontWeight: 700, color: labelColor }}>{c.unit}</span>}
           </div>
 
           {/* Sparkline */}
-          <div style={{ height: 32, marginTop: 6 }}>
+          <div style={{ height: 20, marginTop: 4 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={spark(c.b, c.n)}>
-                <Line type="monotone" dataKey="v" stroke={c.color} strokeWidth={1.8} dot={false} isAnimationActive={false} />
+                <Line type="monotone" dataKey="v" stroke={c.color} strokeWidth={1.5} dot={false} isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          <div style={{ fontSize: 9, fontWeight: 800, marginTop: 3, color: c.pos ? '#10B981' : '#EF4444' }}>
+          <div style={{ fontSize: 8, fontWeight: 800, marginTop: 2, color: c.pos ? '#10B981' : '#EF4444' }}>
             {c.trend} <span style={{ color: labelColor, fontWeight: 500 }}>vs yesterday</span>
           </div>
         </div>

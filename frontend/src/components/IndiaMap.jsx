@@ -24,11 +24,11 @@ function IndiaMap({
   });
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyCenter: 'center', padding: '10px 0' }}>
-      <div style={{ width: '100%', maxWidth: 360, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5px 0' }}>
+      <div style={{ width: '100%', maxWidth: 460, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <India
           type="select-single"
-          size={320}
+          size={430}
           mapColor={isDarkMode ? '#1E293B' : '#E5E7EB'}
           strokeColor={isDarkMode ? '#0B0F19' : '#FFFFFF'}
           strokeWidth={1.5}
