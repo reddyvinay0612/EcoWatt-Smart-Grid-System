@@ -476,6 +476,8 @@ function NationalAnalytics({ setViewMode }) {
               isEmissionEstimated={detailItem.isEmissionEstimated}
               isDarkMode={isDarkMode}
               averageLabel={currentView === 'india' ? 'national average' : 'state average'}
+              parentState={currentView === 'state' ? selectedState : null}
+              activeMetric={activeMetric}
               onClose={() => {
                 if (currentView === 'state') setSelectedDistrict(null);
                 else setSelectedState(null);
