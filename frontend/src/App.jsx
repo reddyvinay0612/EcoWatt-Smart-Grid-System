@@ -19,7 +19,9 @@ import Anomalies from './pages/Anomalies';
 import CarbonTracker from './pages/CarbonTracker';
 import Optimization from './pages/Optimization';
 import Reports from './pages/Reports';
-import Login from './pages/Login';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import { useAuth } from './context/AuthContext';
 
 import { authService, consumerService, dataService, anomalyService, optimizeService } from './services/api';
 
@@ -60,7 +62,9 @@ class ErrorBoundary extends React.Component {
 
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(authService.isAuthenticated());
+  const { currentUser, logout } = useAuth();
+  const [authView, setAuthView] = useState('login'); // 'login' | 'register'
+  const isAuthenticated = !!currentUser;
   const [activePage, setActivePage] = useState('overview');
   const [viewMode, setViewMode] = useState('national'); // Hoisted state: 'national' | 'local'
   const [consumers, setConsumers] = useState([]);
@@ -131,14 +135,21 @@ function App() {
     }
   };
 
-  const handleLogout = () => {
-    authService.logout();
-    setIsAuthenticated(false);
-    setActivePage('overview');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setActivePage('overview');
+    } catch (err) {
+      console.error("Logout failed:", err);
+    }
   };
 
   if (!isAuthenticated) {
-    return <Login onLoginSuccess={() => setIsAuthenticated(true)} />;
+    return authView === 'login' ? (
+      <LoginPage onToggleRegister={() => setAuthView('register')} />
+    ) : (
+      <RegisterPage onToggleLogin={() => setAuthView('login')} />
+    );
   }
 
   // Find active consumer details
@@ -242,9 +253,13 @@ function App() {
             <div className="bg-slate-800 p-2 rounded-full">
               <UserIcon className="h-4 w-4 text-slate-300" />
             </div>
-            <div>
-              <p className="text-xs font-semibold">Administrator</p>
-              <p className="text-[10px] text-slate-400">SEMS Operator</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-slate-200 truncate max-w-[130px]" title={currentUser?.displayName || 'Operator'}>
+                {currentUser?.displayName || 'Operator'}
+              </p>
+              <p className="text-[10px] text-slate-400 truncate max-w-[130px]" title={currentUser?.email || 'SEMS Operator'}>
+                {currentUser?.email || 'SEMS Operator'}
+              </p>
             </div>
           </div>
           <button 
