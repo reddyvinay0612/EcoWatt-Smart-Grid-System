@@ -223,6 +223,22 @@ export default function NationalAnalytics() {
         <ForecastBarChart />
       </div>
 
+      {/* Row 4 — Bottom Full-Width Comparison Chart */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
+        <ComparisonChart
+          items={dataset}
+          compareA={compareA}
+          setCompareA={setCompareA}
+          compareB={compareB}
+          setCompareB={setCompareB}
+          averageValueElec={NATIONAL_AVG}
+          averageValueCarbon={NATIONAL_CARBON_AVG}
+          averageLabel="National Average"
+          isDarkMode={isDarkMode}
+          height={260}
+        />
+      </div>
+
     </div>
   );
 

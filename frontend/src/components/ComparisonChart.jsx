@@ -20,7 +20,8 @@ export default function ComparisonChart({
   averageValueElec = 1390, 
   averageValueCarbon = 1140, 
   averageLabel = 'Average', 
-  isDarkMode = true 
+  isDarkMode = true,
+  height = 260
 }) {
   // Fallbacks if compareA or compareB are not provided or not in items list
   const itemA = items.find(x => x.name === compareA) || items[0] || { name: 'Region A', electricityConsumption: 1200, carbonEmission: 950 };
@@ -120,7 +121,7 @@ export default function ComparisonChart({
       </div>
 
       {/* Comparison Bar Chart */}
-      <div style={{ width: '100%', height: 200 }}>
+      <div style={{ width: '100%', height }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? '#1E293B' : '#E5E7EB'} vertical={false} />
