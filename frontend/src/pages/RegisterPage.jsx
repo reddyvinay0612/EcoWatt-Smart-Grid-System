@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile } from '../firebase/auth';
 import { auth } from '../firebase/config';
 import { Zap, AlertCircle, Loader } from 'lucide-react';
 

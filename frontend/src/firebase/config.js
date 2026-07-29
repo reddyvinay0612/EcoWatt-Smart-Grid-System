@@ -16,4 +16,7 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);
 
+// Check if credentials are using the default templates
+export const isPlaceholder = !firebaseConfig.apiKey || firebaseConfig.apiKey.includes('placeholder_key');
+
 export default app;
