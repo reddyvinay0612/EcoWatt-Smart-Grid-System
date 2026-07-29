@@ -1,26 +1,21 @@
 import React from 'react';
 import {
-  LayoutDashboard, Map, BarChart3, Leaf, BrainCircuit,
+  LayoutDashboard, BarChart3, Leaf, BrainCircuit,
   Wind, Network, FileText, BellRing, Settings,
-  LogOut, User as UserIcon, Globe,
+  LogOut, User as UserIcon, Globe, Map
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
-const NAV = [
-  { id: 'overview',     label: 'Dashboard',         Icon: LayoutDashboard },
-  { id: 'national-map', label: 'National Map',       Icon: Map             },
-  { id: 'forecasting',  label: 'Energy Analytics',   Icon: BarChart3       },
-  { id: 'carbon',       label: 'Carbon Audit',       Icon: Leaf            },
-  { id: 'forecasting',  label: 'AI Predictions',     Icon: BrainCircuit    },
-  { id: 'optimization', label: 'Renewable Sources',  Icon: Wind            },
-  { id: 'optimization', label: 'Grid Status',        Icon: Network         },
-  { id: 'reports',      label: 'Reports',            Icon: FileText        },
-  { id: 'anomalies',    label: 'Alerts Center',      Icon: BellRing        },
-  { id: 'profile',      label: 'Settings',           Icon: Settings        },
-];
-
-export default function Sidebar({ activePage, setActivePage, activeAnomalyCount, pendingOptCount, onLogout }) {
+export default function Sidebar({ 
+  activePage, 
+  setActivePage, 
+  activeAnomalyCount, 
+  pendingOptCount, 
+  onLogout,
+  viewMode = 'national',
+  setViewMode
+}) {
   const { currentUser } = useAuth();
   const { isDarkMode } = useTheme();
 
@@ -37,6 +32,33 @@ export default function Sidebar({ activePage, setActivePage, activeAnomalyCount,
   const hoverBg = isDarkMode ? 'rgba(255,255,255,0.05)' : '#F1F5F9';
   const hoverText = isDarkMode ? '#F8FAFC' : '#0F172A';
 
+  // Toggle mode switcher
+  const handleModeChange = (mode) => {
+    setViewMode(mode);
+    if (mode === 'national') {
+      setActivePage('overview');
+    } else {
+      setActivePage('forecasting');
+    }
+  };
+
+  // Filtered Navigation based on mode
+  const navItems = viewMode === 'national' 
+    ? [
+        { id: 'overview', label: 'National Dashboard', Icon: LayoutDashboard },
+        { id: 'profile',  label: 'Settings',           Icon: Settings        },
+      ]
+    : [
+        { id: 'forecasting',  label: 'Energy Analytics',   Icon: BarChart3       },
+        { id: 'carbon',       label: 'Carbon Audit',       Icon: Leaf            },
+        { id: 'forecasting',  label: 'AI Predictions',     Icon: BrainCircuit    },
+        { id: 'optimization', label: 'Renewable Sources',  Icon: Wind            },
+        { id: 'optimization', label: 'Grid Status',        Icon: Network         },
+        { id: 'reports',      label: 'Reports',            Icon: FileText        },
+        { id: 'anomalies',    label: 'Alerts Center',      Icon: BellRing        },
+        { id: 'profile',      label: 'Settings',           Icon: Settings        },
+      ];
+
   return (
     <aside style={{
       width: 200,
@@ -49,9 +71,49 @@ export default function Sidebar({ activePage, setActivePage, activeAnomalyCount,
       transition: 'background 0.2s, border-color 0.2s',
     }}>
 
+      {/* View Mode Segmented Tab Switcher */}
+      <div style={{ padding: '12px 10px 8px 10px', borderBottom: `1px solid ${border}` }}>
+        <div style={{ display: 'flex', background: isDarkMode ? 'rgba(255,255,255,0.04)' : '#F1F5F9', padding: 2, borderRadius: 10, border: `1px solid ${border}` }}>
+          <button
+            onClick={() => handleModeChange('national')}
+            style={{
+              flex: 1,
+              padding: '6px 0',
+              border: 'none',
+              borderRadius: 8,
+              fontSize: 9,
+              fontWeight: 800,
+              cursor: 'pointer',
+              background: viewMode === 'national' ? '#3B82F6' : 'transparent',
+              color: viewMode === 'national' ? '#fff' : textInactive,
+              transition: 'all 0.15s'
+            }}
+          >
+            National
+          </button>
+          <button
+            onClick={() => handleModeChange('local')}
+            style={{
+              flex: 1,
+              padding: '6px 0',
+              border: 'none',
+              borderRadius: 8,
+              fontSize: 9,
+              fontWeight: 800,
+              cursor: 'pointer',
+              background: viewMode === 'local' ? '#3B82F6' : 'transparent',
+              color: viewMode === 'local' ? '#fff' : textInactive,
+              transition: 'all 0.15s'
+            }}
+          >
+            Telemetry
+          </button>
+        </div>
+      </div>
+
       {/* Vertical Nav */}
-      <nav style={{ flex: 1, overflowY: 'auto', padding: '12px 8px' }}>
-        {NAV.map((item, idx) => {
+      <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 8px' }}>
+        {navItems.map((item, idx) => {
           const active = activePage === item.id;
           const isBell = item.id === 'anomalies' && activeAnomalyCount > 0;
           return (

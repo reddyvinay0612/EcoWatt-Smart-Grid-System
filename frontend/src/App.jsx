@@ -41,6 +41,7 @@ function App() {
   const isAuthenticated = !!currentUser;
 
   const [activePage,          setActivePage]          = useState('overview');
+  const [viewMode,            setViewMode]            = useState('national'); // Hoisted state: 'national' | 'local'
   const [consumers,           setConsumers]           = useState([]);
   const [selectedConsumerId,  setSelectedConsumerId]  = useState('');
   const [activeAnomalyCount,  setActiveAnomalyCount]  = useState(0);
@@ -142,6 +143,8 @@ function App() {
           activeAnomalyCount={activeAnomalyCount}
           pendingOptCount={pendingOptCount}
           onLogout={handleLogout}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
         />
 
         {/* Main content column */}
