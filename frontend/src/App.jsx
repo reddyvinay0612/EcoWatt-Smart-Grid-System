@@ -62,12 +62,20 @@ class ErrorBoundary extends React.Component {
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(authService.isAuthenticated());
   const [activePage, setActivePage] = useState('overview');
+  const [viewMode, setViewMode] = useState('national'); // Hoisted state: 'national' | 'local'
   const [consumers, setConsumers] = useState([]);
   const [selectedConsumerId, setSelectedConsumerId] = useState('');
   const [activeAnomalyCount, setActiveAnomalyCount] = useState(0);
   const [pendingOptCount, setPendingOptCount] = useState(0);
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationLog, setSimulationLog] = useState('');
+
+  // Routing guard to force Overview page when National view mode is selected
+  useEffect(() => {
+    if (viewMode === 'national') {
+      setActivePage('overview');
+    }
+  }, [viewMode]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -136,14 +144,16 @@ function App() {
   // Find active consumer details
   const activeConsumer = consumers.find(c => c.id.toString() === selectedConsumerId);
 
-  const navigationItems = [
-    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'forecasting', label: 'AI Forecasting', icon: TrendingUp },
-    { id: 'anomalies', label: 'Anomaly Detector', icon: AlertTriangle, badge: activeAnomalyCount },
-    { id: 'carbon', label: 'Carbon Tracker', icon: Leaf },
-    { id: 'optimization', label: 'DR Optimization', icon: Cpu, badge: pendingOptCount },
-    { id: 'reports', label: 'Data Audit & Reports', icon: FileText }
-  ];
+  const navigationItems = viewMode === 'national'
+    ? [{ id: 'overview', label: 'National Map', icon: LayoutDashboard }]
+    : [
+        { id: 'overview', label: 'Local Overview', icon: LayoutDashboard },
+        { id: 'forecasting', label: 'AI Forecasting', icon: TrendingUp },
+        { id: 'anomalies', label: 'Anomaly Detector', icon: AlertTriangle, badge: activeAnomalyCount },
+        { id: 'carbon', label: 'Carbon Tracker', icon: Leaf },
+        { id: 'optimization', label: 'DR Optimization', icon: Cpu, badge: pendingOptCount },
+        { id: 'reports', label: 'Data Audit & Reports', icon: FileText }
+      ];
 
   const renderPage = () => {
     const consumerIdNum = selectedConsumerId ? parseInt(selectedConsumerId) : null;
@@ -152,7 +162,14 @@ function App() {
         {(() => {
           switch (activePage) {
             case 'overview':
-              return <Overview consumerId={consumerIdNum} activeConsumer={activeConsumer} />;
+              return (
+                <Overview 
+                  consumerId={consumerIdNum} 
+                  activeConsumer={activeConsumer} 
+                  viewMode={viewMode}
+                  setViewMode={setViewMode}
+                />
+              );
             case 'forecasting':
               return <Forecasting consumerId={consumerIdNum} activeConsumer={activeConsumer} />;
             case 'anomalies':
@@ -244,41 +261,52 @@ function App() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
         <header className="h-16 bg-darkCard border-b border-darkBorder flex items-center justify-between px-8 shrink-0">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2 text-slate-300">
-              <Building className="h-5 w-5 text-accentBlue" />
-              <label htmlFor="consumerSelect" className="text-sm font-semibold">Smart Grid Node:</label>
-            </div>
-            <select
-              id="consumerSelect"
-              value={selectedConsumerId}
-              onChange={(e) => setSelectedConsumerId(e.target.value)}
-              className="bg-[#0B0F19] border border-darkBorder rounded-lg px-3 py-1.5 text-sm font-medium text-slate-200 outline-none focus:border-accentBlue transition-all"
-            >
-              {consumers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  [{c.class_type}] {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {viewMode === 'local' ? (
+            <>
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2 text-slate-300">
+                  <Building className="h-5 w-5 text-accentBlue" />
+                  <label htmlFor="consumerSelect" className="text-sm font-semibold">Smart Grid Node:</label>
+                </div>
+                <select
+                  id="consumerSelect"
+                  value={selectedConsumerId}
+                  onChange={(e) => setSelectedConsumerId(e.target.value)}
+                  className="bg-[#0B0F19] border border-darkBorder rounded-lg px-3 py-1.5 text-sm font-medium text-slate-200 outline-none focus:border-accentBlue transition-all"
+                >
+                  {consumers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      [{c.class_type}] {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <div className="flex items-center space-x-4">
-            {simulationLog && (
-              <span className="text-xs text-accentGreen pulse-soft font-semibold bg-accentGreen/10 px-3 py-1 rounded-full">
-                {simulationLog}
+              <div className="flex items-center space-x-4">
+                {simulationLog && (
+                  <span className="text-xs text-accentGreen pulse-soft font-semibold bg-accentGreen/10 px-3 py-1 rounded-full">
+                    {simulationLog}
+                  </span>
+                )}
+                
+                <button
+                  onClick={handleSimulateStep}
+                  disabled={isSimulating}
+                  className="flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-1.5 rounded-lg text-xs font-semibold border border-slate-700 disabled:opacity-50 transition-all"
+                >
+                  <Play className="h-3 w-3 fill-current text-accentBlue" />
+                  <span>Simulate Grid Ingestion Tick</span>
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center space-x-3">
+              <Zap className="h-5 w-5 text-accentBlue animate-pulse" />
+              <span className="text-sm font-bold tracking-wide text-slate-200 uppercase">
+                EcoWatt AI National Analytics Center
               </span>
-            )}
-            
-            <button
-              onClick={handleSimulateStep}
-              disabled={isSimulating}
-              className="flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-1.5 rounded-lg text-xs font-semibold border border-slate-700 disabled:opacity-50 transition-all"
-            >
-              <Play className="h-3 w-3 fill-current text-accentBlue" />
-              <span>Simulate Grid Ingestion Tick</span>
-            </button>
-          </div>
+            </div>
+          )}
         </header>
 
         {/* Page Render Container */}

@@ -26,8 +26,7 @@ import {
 import { dataService, carbonService, anomalyService, optimizeService } from '../services/api';
 import NationalAnalytics from './NationalAnalytics';
 
-function Overview({ consumerId, activeConsumer }) {
-  const [viewMode, setViewMode] = useState('national'); // 'national' or 'local'
+function Overview({ consumerId, activeConsumer, viewMode, setViewMode }) {
   const [historyData, setHistoryData] = useState([]);
   const [carbonSummary, setCarbonSummary] = useState(null);
   const [recentAnomalies, setRecentAnomalies] = useState([]);
