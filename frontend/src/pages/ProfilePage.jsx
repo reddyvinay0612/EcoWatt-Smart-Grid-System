@@ -51,19 +51,44 @@ function ProfilePage({ onBackToDashboard }) {
 
   // Load custom profile metadata on mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(userKey);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setPhone(parsed.phone || '');
-        setOrganization(parsed.organization || '');
-        setRole(parsed.role || '');
-        setAvatar(parsed.avatar || '');
+    const loadProfileData = async () => {
+      // 1. Try Firestore if real Firebase
+      try {
+        const { isPlaceholder } = await import('../firebase/config');
+        if (!isPlaceholder && currentUser?.uid) {
+          const { db } = await import('../firebase/config');
+          const { doc, getDoc } = await import('firebase/firestore');
+          const docSnap = await getDoc(doc(db, "users", currentUser.uid));
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setPhone(data.phone || '');
+            setOrganization(data.organization || '');
+            setRole(data.role || '');
+            setAvatar(data.avatar || '');
+            return;
+          }
+        }
+      } catch (fsErr) {
+        console.error("Firestore read failed (falling back to localStorage):", fsErr);
       }
-    } catch (e) {
-      console.error("Failed to load metadata", e);
-    }
-  }, [userKey]);
+
+      // 2. LocalStorage Fallback
+      try {
+        const stored = localStorage.getItem(userKey);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setPhone(parsed.phone || '');
+          setOrganization(parsed.organization || '');
+          setRole(parsed.role || '');
+          setAvatar(parsed.avatar || '');
+        }
+      } catch (e) {
+        console.error("Failed to load local metadata", e);
+      }
+    };
+
+    loadProfileData();
+  }, [userKey, currentUser]);
 
   // Show auto-dismissing toast notifications
   const showToast = (type, message) => {
@@ -94,9 +119,30 @@ function ProfilePage({ onBackToDashboard }) {
       // Update display name inside firebase auth profile (cloud or mock)
       await updateProfile(currentUser, { displayName: fullName });
       
-      // Save extra fields locally
+      // Save extra fields locally (always cache locally as backup)
       const meta = { phone, organization, role, avatar };
       localStorage.setItem(userKey, JSON.stringify(meta));
+
+      // 3. Write to Firestore if real Firebase
+      try {
+        const { isPlaceholder } = await import('../firebase/config');
+        if (!isPlaceholder && currentUser?.uid) {
+          const { db } = await import('../firebase/config');
+          const { doc, setDoc } = await import('firebase/firestore');
+          await setDoc(doc(db, "users", currentUser.uid), {
+            uid: currentUser.uid,
+            fullName: fullName,
+            email: currentUser.email,
+            phone,
+            organization,
+            role,
+            avatar,
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+        }
+      } catch (fsErr) {
+        console.error("Firestore write failed:", fsErr);
+      }
       
       // Sync display name in current session
       if (currentUser) {

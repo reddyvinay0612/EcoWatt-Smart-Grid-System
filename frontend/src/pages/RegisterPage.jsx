@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createUserWithEmailAndPassword, updateProfile } from '../firebase/auth';
-import { auth } from '../firebase/config';
+import { auth, isPlaceholder } from '../firebase/config';
 import { Zap, AlertCircle, Loader } from 'lucide-react';
 
 function RegisterPage({ onToggleLogin }) {
@@ -53,6 +53,26 @@ function RegisterPage({ onToggleLogin }) {
       await updateProfile(userCredential.user, {
         displayName: fullName
       });
+
+      // Write details to Firestore in real Firebase mode
+      if (!isPlaceholder && userCredential.user) {
+        try {
+          const { db } = await import('../firebase/config');
+          const { doc, setDoc } = await import('firebase/firestore');
+          await setDoc(doc(db, "users", userCredential.user.uid), {
+            uid: userCredential.user.uid,
+            fullName: fullName,
+            email: email,
+            phone: '',
+            organization: '',
+            role: 'SEMS Operator',
+            avatar: '',
+            createdAt: new Date().toISOString()
+          });
+        } catch (fsErr) {
+          console.error("Firestore document write failed (make sure Firestore is enabled in Firebase Console):", fsErr);
+        }
+      }
       
     } catch (err) {
       console.error("Registration error:", err);
