@@ -148,7 +148,11 @@ def optimize_energy_mix(current_consumption, current_emission, budget_constraint
 def predict(state: str, metric: str, years_ahead: int = 5):
     state_key = state.lower().replace(" ", "").replace("&", "and")
     metric_key = "electricity" if "elec" in metric.lower() else "carbon"
-    model_path = f"models/{state_key}_{metric_key}_model.pkl"
+    
+    # Calculate absolute path relative to this file's folder to support parent-directory launching
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    models_dir = os.path.join(base_dir, "models")
+    model_path = os.path.join(models_dir, f"{state_key}_{metric_key}_model.pkl")
     
     if not os.path.exists(model_path):
         raise HTTPException(
