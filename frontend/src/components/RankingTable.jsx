@@ -99,7 +99,7 @@ function RankingTable({ data, selectedItem, onSelect, isDarkMode, isNational }) 
                 >
                   <td className="py-3 font-bold text-center text-slate-400">{globalIdx}</td>
                   <td className={`py-3 font-semibold ${isDarkMode ? 'text-slate-200' : 'text-slate-850'}`}>
-                    {item.name}
+                    {item.name}{item.isEstimated ? ' *' : ''}
                   </td>
                   <td className="py-3 font-extrabold">{elecVal.toLocaleString()} kWh</td>
                   <td className="py-3 font-extrabold text-slate-300">{carbVal.toLocaleString()} kg</td>

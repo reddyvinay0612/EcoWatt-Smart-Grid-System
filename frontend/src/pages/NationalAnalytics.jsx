@@ -34,7 +34,9 @@ import FilterButtons from '../components/FilterButtons';
 // Import data
 import { stateData, NATIONAL_AVG, NATIONAL_CARBON_AVG } from '../data/stateData';
 import { getDistrictsForState } from '../data/districtData';
+import allDistricts from '../data/allDistricts';
 import getColorScale from '../utils/colorScale';
+import { fillMissingDistricts } from '../utils/generateMissingDistrictData';
 import { getOptimizationScore } from '../utils/optimizationEngine';
 
 function NationalAnalytics({ setViewMode }) {
@@ -71,10 +73,17 @@ function NationalAnalytics({ setViewMode }) {
     return { needyStates, benchmarkStates };
   }, []);
 
-  // Load districts dynamically when selected state changes
+  // Load districts dynamically when selected state changes, merging and filling missing items
   const districts = useMemo(() => {
     if (!selectedState) return [];
-    return getDistrictsForState(selectedState, stateData.find(s => s.name === selectedState)?.electricityConsumption || 1000);
+    const stateObj = stateData.find(s => s.name === selectedState);
+    const stateAvg = stateObj?.electricityConsumption || 1000;
+    const stateFactor = stateObj?.emissionFactor || 0.85;
+
+    const existing = getDistrictsForState(selectedState, stateAvg);
+    const allStateDistrictsList = allDistricts[selectedState] || [];
+
+    return fillMissingDistricts(selectedState, existing, allStateDistrictsList, stateAvg, stateFactor);
   }, [selectedState]);
 
   // Sync comparison drop-downs when view switches
@@ -695,8 +704,9 @@ function NationalAnalytics({ setViewMode }) {
         isDarkMode={isDarkMode}
         isNational={currentView === 'india'}
       />
-      <div className="text-[10px] text-slate-500 text-center font-medium italic">
-        * Footnote: Carbon emission figures are estimated for illustrative purposes from assumed local renewable ratios.
+      <div className="text-[10px] text-slate-500 text-center font-medium italic space-y-1 mt-4">
+        <div>* Footnote: Carbon emission figures are estimated for illustrative purposes from assumed local renewable ratios.</div>
+        <div>* Data Quality Note: District-level figures are estimated based on state averages where official data is unavailable.</div>
       </div>
     </div>
   );

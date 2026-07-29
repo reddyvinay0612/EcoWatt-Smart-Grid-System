@@ -94,6 +94,8 @@ function StateMap({
             const isFiltered = tierFilter !== 'All' && tier !== tierFilter;
 
             if (isFiltered) return null;
+            // Cap at 10 pins to avoid visual cluttering on the map
+            if (index >= 10) return null;
 
             return (
               <div
@@ -120,7 +122,7 @@ function StateMap({
                 {/* Local Tooltip on Hover */}
                 {hoveredPin === d.name && (
                   <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-[#151D30] border border-slate-700/40 text-white text-[10px] font-bold py-1.5 px-2.5 rounded-lg whitespace-nowrap shadow-xl z-50">
-                    {d.name} ({value} {activeMetric === 'carbon' ? 'kg CO2' : 'kWh'})
+                    {d.name}{d.isEstimated ? ' *' : ''} ({value} {activeMetric === 'carbon' ? 'kg CO2' : 'kWh'})
                   </div>
                 )}
               </div>
@@ -131,9 +133,14 @@ function StateMap({
 
       {/* Right side: Clickable District Badges List */}
       <div className="w-full md:w-64 flex flex-col justify-start space-y-2 max-h-[380px] overflow-y-auto pr-1">
-        <h5 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">
-          Select District
-        </h5>
+        <div className="mb-2">
+          <h5 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+            Select District
+          </h5>
+          <span className="text-[9px] text-slate-500 font-semibold block mt-0.5">
+            Showing all {districts.length} districts of {selectedState}
+          </span>
+        </div>
         {districts.map((d) => {
           const value = activeMetric === 'carbon' ? d.carbonEmission : d.electricityConsumption;
           const { color, tier } = getColorScale(value, stateAverage, activeMetric);
@@ -157,7 +164,7 @@ function StateMap({
               }`}
             >
               <div className="w-full flex items-center justify-between font-bold mb-1 text-xs">
-                <span>{d.name}</span>
+                <span>{d.name}{d.isEstimated ? ' *' : ''}</span>
                 <span style={{ color }}>
                   {value.toLocaleString()} {activeMetric === 'carbon' ? 'kg' : 'kWh'}
                 </span>
