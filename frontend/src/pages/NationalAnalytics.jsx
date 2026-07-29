@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toPng } from 'html-to-image';
 import { Download, ArrowLeft } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 // ── Preserved existing components ──────────────────────────────────
 import StateMap        from '../components/StateMap';
@@ -31,7 +32,8 @@ import getColorScale                                     from '../utils/colorSca
 import { fillMissingDistricts }                          from '../utils/generateMissingDistrictData';
 import { getOptimizationScore }                          from '../utils/optimizationEngine';
 
-export default function NationalAnalytics({ setViewMode }) {
+export default function NationalAnalytics() {
+  const { isDarkMode } = useTheme();
   const [view,             setView]           = useState('india');
   const [selectedState,    setSelectedState]  = useState(null);
   const [selectedDistrict, setSelectedDist]   = useState(null);
@@ -39,6 +41,13 @@ export default function NationalAnalytics({ setViewMode }) {
   const [activeMetric,     setActiveMetric]   = useState('electricity');
   const [compareA,         setCompareA]       = useState('Maharashtra');
   const [compareB,         setCompareB]       = useState('Uttar Pradesh');
+
+  const cardBg = isDarkMode ? '#131824' : '#FFFFFF';
+  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
+  const titleColor = isDarkMode ? '#FFFFFF' : '#0F172A';
+  const labelColor = isDarkMode ? '#94A3B8' : '#475569';
+  const buttonBg = isDarkMode ? 'rgba(255,255,255,0.05)' : '#F1F5F9';
+  const buttonBorder = isDarkMode ? 'rgba(255,255,255,0.1)' : '#CBD5E1';
 
   // Robust state selector handler
   const handleSelectState = (input) => {
@@ -142,7 +151,7 @@ export default function NationalAnalytics({ setViewMode }) {
   const handleExport = () => {
     const n = document.querySelector('.map-export');
     if (!n) return;
-    toPng(n, { backgroundColor: '#0a0e17' }).then(u => {
+    toPng(n, { backgroundColor: isDarkMode ? '#0a0e17' : '#F8FAFC' }).then(u => {
       const a = document.createElement('a');
       a.download = `map_${activeMetric}.png`;
       a.href = u;
@@ -165,10 +174,10 @@ export default function NationalAnalytics({ setViewMode }) {
         {/* Col 1: Map Toolbar + Live Map + Selected State Bar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-            <FilterButtons tierFilter={tierFilter} setTierFilter={setTierFilter} />
+            <FilterButtons tierFilter={tierFilter} setTierFilter={setTierFilter} isDarkMode={isDarkMode} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <SearchBar data={dataset} onSelect={n => handleSelectState(n)} />
-              <button onClick={handleExport} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '5px 10px', fontSize: 9, fontWeight: 700, color: '#94a3b8', cursor: 'pointer' }}>
+              <SearchBar data={dataset} onSelect={n => handleSelectState(n)} isDarkMode={isDarkMode} />
+              <button onClick={handleExport} style={{ display: 'flex', alignItems: 'center', gap: 5, background: buttonBg, border: `1px solid ${buttonBorder}`, borderRadius: 8, padding: '5px 10px', fontSize: 9, fontWeight: 700, color: labelColor, cursor: 'pointer' }}>
                 <Download size={11} /> Export
               </button>
             </div>
@@ -214,23 +223,23 @@ export default function NationalAnalytics({ setViewMode }) {
         {/* Toolbar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button onClick={() => handleNav('india')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '5px 12px', fontSize: 10, fontWeight: 700, color: '#94a3b8', cursor: 'pointer' }}>
+            <button onClick={() => handleNav('india')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: buttonBg, border: `1px solid ${buttonBorder}`, borderRadius: 8, padding: '5px 12px', fontSize: 10, fontWeight: 700, color: labelColor, cursor: 'pointer' }}>
               <ArrowLeft size={13} /> National Map
             </button>
-            <Breadcrumb currentView={view} selectedState={selectedState} selectedDistrict={selectedDistrict} onNavigate={handleNav} />
+            <Breadcrumb currentView={view} selectedState={selectedState} selectedDistrict={selectedDistrict} onNavigate={handleNav} isDarkMode={isDarkMode} />
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <FilterButtons tierFilter={tierFilter} setTierFilter={setTierFilter} />
-            <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: 2 }}>
+            <FilterButtons tierFilter={tierFilter} setTierFilter={setTierFilter} isDarkMode={isDarkMode} />
+            <div style={{ display: 'flex', background: buttonBg, border: `1px solid ${buttonBorder}`, borderRadius: 8, padding: 2 }}>
               {['electricity', 'carbon'].map(m => (
-                <button key={m} onClick={() => setActiveMetric(m)} style={{ padding: '4px 12px', borderRadius: 6, fontSize: 10, fontWeight: 700, textTransform: 'capitalize', cursor: 'pointer', border: 'none', background: activeMetric === m ? '#3B82F6' : 'transparent', color: activeMetric === m ? '#fff' : '#94a3b8' }}>
+                <button key={m} onClick={() => setActiveMetric(m)} style={{ padding: '4px 12px', borderRadius: 6, fontSize: 10, fontWeight: 700, textTransform: 'capitalize', cursor: 'pointer', border: 'none', background: activeMetric === m ? '#3B82F6' : 'transparent', color: activeMetric === m ? '#fff' : labelColor }}>
                   {m}
                 </button>
               ))}
             </div>
-            <SearchBar data={dataset} onSelect={n => setSelectedDist(n)} />
-            <button onClick={handleExport} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '5px 10px', fontSize: 9, fontWeight: 700, color: '#94a3b8', cursor: 'pointer' }}>
+            <SearchBar data={dataset} onSelect={n => setSelectedDist(n)} isDarkMode={isDarkMode} />
+            <button onClick={handleExport} style={{ display: 'flex', alignItems: 'center', gap: 5, background: buttonBg, border: `1px solid ${buttonBorder}`, borderRadius: 8, padding: '5px 10px', fontSize: 9, fontWeight: 700, color: labelColor, cursor: 'pointer' }}>
               <Download size={11} /> Export
             </button>
           </div>
@@ -238,34 +247,34 @@ export default function NationalAnalytics({ setViewMode }) {
 
         {/* State map + detail panel */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 14 }}>
-          <div className="map-export" style={{ background: '#131824', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, overflow: 'hidden', minHeight: 480 }}>
+          <div className="map-export" style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, overflow: 'hidden', minHeight: 480 }}>
             <StateMap
               selectedState={selectedState}
               districts={dataset}
               selectedDistrict={selectedDistrict}
               onSelectDistrict={d => setSelectedDist(d.name || d)}
               tierFilter={tierFilter}
-              isDarkMode={true}
+              isDarkMode={isDarkMode}
               stateAverage={stateData.find(s => s.name === selectedState)?.electricityConsumption || 1000}
               activeMetric={activeMetric}
             />
           </div>
-          {detailItem && <DetailPanel item={detailItem} currentView={view} activeMetric={activeMetric} />}
+          {detailItem && <DetailPanel item={detailItem} currentView={view} activeMetric={activeMetric} isDarkMode={isDarkMode} />}
         </div>
 
         {/* District Rankings + Comparison */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          <div style={{ background: '#131824', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: 16 }}>
-            <div style={{ fontSize: 10, fontWeight: 900, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>
+          <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, padding: 16 }}>
+            <div style={{ fontSize: 10, fontWeight: 900, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>
               District Rankings — {selectedState}
             </div>
-            <RankingTable data={dataset} onSelect={d => setSelectedDist(d.name || d)} metric={activeMetric} type="needy" />
+            <RankingTable data={dataset} onSelect={d => setSelectedDist(d.name || d)} metric={activeMetric} type="needy" isDarkMode={isDarkMode} />
           </div>
-          <div style={{ background: '#131824', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: 16 }}>
-            <div style={{ fontSize: 10, fontWeight: 900, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>
+          <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, padding: 16 }}>
+            <div style={{ fontSize: 10, fontWeight: 900, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>
               District Comparison
             </div>
-            <ComparisonChart items={dataset} compareA={compareA} setCompareA={setCompareA} compareB={compareB} setCompareB={setCompareB} comparisonItems={cmpItems} activeMetric={activeMetric} />
+            <ComparisonChart items={dataset} compareA={compareA} setCompareA={setCompareA} compareB={compareB} setCompareB={setCompareB} comparisonItems={cmpItems} activeMetric={activeMetric} isDarkMode={isDarkMode} />
           </div>
         </div>
 

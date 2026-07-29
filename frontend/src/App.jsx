@@ -14,6 +14,7 @@ import Header  from './components/Header';
 import Sidebar from './components/Sidebar';
 
 import { useAuth }                                                    from './context/AuthContext';
+import { useTheme }                                                   from './context/ThemeContext';
 import { consumerService, dataService, anomalyService, optimizeService } from './services/api';
 
 /* ─── Error Boundary ─────────────────────────────────────────────── */
@@ -36,6 +37,7 @@ class ErrorBoundary extends React.Component {
 /* ─── App ─────────────────────────────────────────────────────────── */
 function App() {
   const { currentUser, logout } = useAuth();
+  const { isDarkMode } = useTheme();
   const isAuthenticated = !!currentUser;
 
   const [activePage,          setActivePage]          = useState('overview');
@@ -114,7 +116,15 @@ function App() {
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0a0e17', color: '#f1f5f9', overflow: 'hidden' }}>
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100vh',
+      background: isDarkMode ? '#0a0e17' : '#F8FAFC',
+      color: isDarkMode ? '#f1f5f9' : '#0F172A',
+      overflow: 'hidden',
+      transition: 'background 0.2s, color 0.2s',
+    }}>
 
       {/* ── Top Header ── */}
       <Header
@@ -139,19 +149,49 @@ function App() {
 
           {/* Local-mode sub-header */}
           {isLocalPage && (
-            <div style={{ height: 48, background: '#0d1219', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', flexShrink: 0 }}>
+            <div style={{
+              height: 48,
+              background: isDarkMode ? '#0d1219' : '#FFFFFF',
+              borderBottom: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.05)' : '#E2E8F0'}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0 24px',
+              flexShrink: 0
+            }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Building size={14} color="#3B82F6" />
-                <label htmlFor="cSelect" style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8' }}>Smart Grid Node:</label>
+                <label htmlFor="cSelect" style={{ fontSize: 11, fontWeight: 700, color: isDarkMode ? '#94a3b8' : '#475569' }}>Smart Grid Node:</label>
                 <select id="cSelect" value={selectedConsumerId} onChange={e => setSelectedConsumerId(e.target.value)}
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '3px 10px', fontSize: 11, color: '#e2e8f0', outline: 'none' }}>
+                  style={{
+                    background: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F1F5F9',
+                    border: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.1)' : '#CBD5E1'}`,
+                    borderRadius: 8,
+                    padding: '3px 10px',
+                    fontSize: 11,
+                    color: isDarkMode ? '#e2e8f0' : '#0F172A',
+                    outline: 'none'
+                  }}>
                   {consumers.map(c => <option key={c.id} value={c.id}>[{c.class_type}] {c.name}</option>)}
                 </select>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 {simulationLog && <span style={{ fontSize: 10, color: '#10B981', background: 'rgba(16,185,129,0.1)', padding: '3px 10px', borderRadius: 999, fontWeight: 700 }}>{simulationLog}</span>}
                 <button onClick={handleSimulateStep} disabled={isSimulating}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '5px 12px', fontSize: 10, fontWeight: 700, color: '#cbd5e1', cursor: 'pointer', opacity: isSimulating ? 0.5 : 1 }}>
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F1F5F9',
+                    border: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.1)' : '#CBD5E1'}`,
+                    borderRadius: 8,
+                    padding: '5px 12px',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: isDarkMode ? '#cbd5e1' : '#334155',
+                    cursor: 'pointer',
+                    opacity: isSimulating ? 0.5 : 1
+                  }}>
                   <Play size={10} fill="#3B82F6" color="#3B82F6" />
                   Simulate Grid Tick
                 </button>

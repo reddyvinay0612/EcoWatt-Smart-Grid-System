@@ -5,6 +5,7 @@ import {
   LogOut, User as UserIcon, Globe,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 const NAV = [
   { id: 'overview',     label: 'Dashboard',         Icon: LayoutDashboard },
@@ -21,6 +22,8 @@ const NAV = [
 
 export default function Sidebar({ activePage, setActivePage, activeAnomalyCount, pendingOptCount, onLogout }) {
   const { currentUser } = useAuth();
+  const { isDarkMode } = useTheme();
+
   const avatar = (() => {
     try { const p = JSON.parse(localStorage.getItem(`profile_meta_${currentUser?.email || currentUser?.uid}`) || '{}'); return p.avatar || null; }
     catch { return null; }
@@ -28,8 +31,23 @@ export default function Sidebar({ activePage, setActivePage, activeAnomalyCount,
   const name = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Operator';
   const email = currentUser?.email || '';
 
+  const bg = isDarkMode ? '#0b0f19' : '#FFFFFF';
+  const border = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
+  const textInactive = isDarkMode ? '#94A3B8' : '#475569';
+  const hoverBg = isDarkMode ? 'rgba(255,255,255,0.05)' : '#F1F5F9';
+  const hoverText = isDarkMode ? '#F8FAFC' : '#0F172A';
+
   return (
-    <aside style={{ width: 200, background: '#0b0f19', borderRight: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', flexShrink: 0, overflow: 'hidden' }}>
+    <aside style={{
+      width: 200,
+      background: bg,
+      borderRight: `1px solid ${border}`,
+      display: 'flex',
+      flexDirection: 'column',
+      flexShrink: 0,
+      overflow: 'hidden',
+      transition: 'background 0.2s, border-color 0.2s',
+    }}>
 
       {/* Vertical Nav */}
       <nav style={{ flex: 1, overflowY: 'auto', padding: '12px 8px' }}>
@@ -41,16 +59,26 @@ export default function Sidebar({ activePage, setActivePage, activeAnomalyCount,
               key={`${item.label}-${idx}`}
               onClick={() => setActivePage(item.id)}
               style={{
-                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '9px 10px 9px 9px', borderRadius: 8, marginBottom: 4, cursor: 'pointer', border: 'none',
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '9px 10px 9px 9px',
+                borderRadius: 8,
+                marginBottom: 4,
+                cursor: 'pointer',
+                border: 'none',
                 borderLeft: active ? '3px solid #3B82F6' : '3px solid transparent',
-                background: active ? 'rgba(59,130,246,0.12)' : 'transparent',
-                color: active ? '#3B82F6' : '#64748b',
-                fontSize: 11, fontWeight: 600,
+                background: active
+                  ? (isDarkMode ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.12)')
+                  : 'transparent',
+                color: active ? '#3B82F6' : textInactive,
+                fontSize: 11,
+                fontWeight: active ? 800 : 600,
                 transition: 'all 0.15s',
               }}
-              onMouseEnter={e => { if (!active) { e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.color='#cbd5e1'; } }}
-              onMouseLeave={e => { if (!active) { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='#64748b'; } }}
+              onMouseEnter={e => { if (!active) { e.currentTarget.style.background = hoverBg; e.currentTarget.style.color = hoverText; } }}
+              onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = textInactive; } }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                 <item.Icon size={15} />
@@ -66,39 +94,49 @@ export default function Sidebar({ activePage, setActivePage, activeAnomalyCount,
         })}
       </nav>
 
-      {/* Bottom of sidebar: small branding card "EcoWatt AI — Empowering a Greener Tomorrow" */}
-      <div style={{ padding: '8px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+      {/* Bottom of sidebar: branding card + profile + sign-out */}
+      <div style={{ padding: '8px', borderTop: `1px solid ${border}` }}>
 
         {/* Branding card */}
-        <div style={{ background: 'linear-gradient(135deg,#0f2340 0%,#0a1a10 100%)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 12px', marginBottom: 8 }}>
+        <div style={{
+          background: isDarkMode
+            ? 'linear-gradient(135deg,#0f2340 0%,#0a1a10 100%)'
+            : 'linear-gradient(135deg,#EFF6FF 0%,#F0FDF4 100%)',
+          border: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.06)' : '#DBEAFE'}`,
+          borderRadius: 10,
+          padding: '10px 12px',
+          marginBottom: 8
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
             <div style={{ background: 'rgba(16,185,129,0.2)', borderRadius: 7, padding: 5 }}>
               <Globe size={12} color="#10B981" />
             </div>
-            <span style={{ fontSize: 10, fontWeight: 900, color: '#fff' }}>EcoWatt AI</span>
+            <span style={{ fontSize: 10, fontWeight: 900, color: isDarkMode ? '#fff' : '#0F172A' }}>EcoWatt AI</span>
           </div>
-          <p style={{ fontSize: 8, color: '#64748b', lineHeight: 1.5, margin: 0 }}>Empowering a Greener Tomorrow</p>
+          <p style={{ fontSize: 8, color: isDarkMode ? '#94A3B8' : '#475569', lineHeight: 1.5, margin: 0, fontWeight: 600 }}>
+            Empowering a Greener Tomorrow
+          </p>
         </div>
 
         {/* Profile row */}
         <button onClick={() => setActivePage('profile')}
           style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', borderRadius: 8, marginBottom: 6 }}
-          onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,0.04)'}
-          onMouseLeave={e => e.currentTarget.style.background='none'}>
-          <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            {avatar ? <img src={avatar} alt="av" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <UserIcon size={13} color="#94a3b8" />}
+          onMouseEnter={e => e.currentTarget.style.background = hoverBg}
+          onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+          <div style={{ width: 28, height: 28, borderRadius: '50%', background: isDarkMode ? '#1e293b' : '#CBD5E1', border: `1px solid ${border}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            {avatar ? <img src={avatar} alt="av" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <UserIcon size={13} color={isDarkMode ? '#94a3b8' : '#475569'} />}
           </div>
           <div style={{ textAlign: 'left', minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
-            <div style={{ fontSize: 8, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{email}</div>
+            <div style={{ fontSize: 10, fontWeight: 800, color: isDarkMode ? '#e2e8f0' : '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+            <div style={{ fontSize: 8, color: isDarkMode ? '#94a3b8' : '#64748B', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{email}</div>
           </div>
         </button>
 
         {/* Sign out */}
         <button onClick={onLogout}
-          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'none', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '6px 0', fontSize: 10, fontWeight: 700, color: '#64748b', cursor: 'pointer' }}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'none', border: `1px solid ${border}`, borderRadius: 8, padding: '6px 0', fontSize: 10, fontWeight: 700, color: isDarkMode ? '#94A3B8' : '#475569', cursor: 'pointer' }}
           onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(239,68,68,0.35)'; e.currentTarget.style.background='rgba(239,68,68,0.1)'; e.currentTarget.style.color='#ef4444'; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor='rgba(255,255,255,0.07)'; e.currentTarget.style.background='none'; e.currentTarget.style.color='#64748b'; }}>
+          onMouseLeave={e => { e.currentTarget.style.borderColor=border; e.currentTarget.style.background='none'; e.currentTarget.style.color=isDarkMode ? '#94A3B8' : '#475569'; }}>
           <LogOut size={12} />
           Sign Out
         </button>

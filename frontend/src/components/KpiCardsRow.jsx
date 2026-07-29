@@ -1,6 +1,7 @@
 import React from 'react';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { Zap, Leaf, Sun, Building2, BrainCircuit, Activity } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 const spark = (base, noise) =>
   Array.from({ length: 10 }, (_, i) => ({ v: base + Math.sin(i * 1.4) * noise }));
@@ -15,37 +16,50 @@ const CARDS = [
 ];
 
 export default function KpiCardsRow() {
+  const { isDarkMode } = useTheme();
+
+  const cardBg = isDarkMode ? '#131824' : '#FFFFFF';
+  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
+  const labelColor = isDarkMode ? '#94A3B8' : '#475569';
+  const valueColor = isDarkMode ? '#FFFFFF' : '#0F172A';
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 10 }}>
-      {CARDS.map((c, i) => (
-        <div key={c.label} style={{ background: '#131824', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '12px 14px', cursor: 'default', transition: 'box-shadow 0.2s' }}
-          onMouseEnter={e => e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,0.35)'}
-          onMouseLeave={e => e.currentTarget.style.boxShadow='none'}>
+      {CARDS.map((c) => (
+        <div key={c.label} style={{
+          background: cardBg,
+          border: `1px solid ${cardBorder}`,
+          borderRadius: 12,
+          padding: '12px 14px',
+          cursor: 'default',
+          transition: 'all 0.2s',
+          boxShadow: isDarkMode ? 'none' : '0 2px 8px rgba(0,0,0,0.04)'
+        }}>
 
           <div style={{ background: c.bg, borderRadius: 8, padding: 6, display: 'inline-flex', marginBottom: 8 }}>
             <c.Icon size={14} color={c.color} />
           </div>
 
-          <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', lineHeight: 1 }}>
+          <div style={{ fontSize: 9, fontWeight: 800, color: labelColor, textTransform: 'uppercase', letterSpacing: '0.1em', lineHeight: 1 }}>
             {c.label}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 4 }}>
-            <span style={{ fontSize: 22, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{c.value}</span>
-            {c.unit && <span style={{ fontSize: 10, fontWeight: 700, color: '#64748b' }}>{c.unit}</span>}
+            <span style={{ fontSize: 22, fontWeight: 900, color: valueColor, lineHeight: 1 }}>{c.value}</span>
+            {c.unit && <span style={{ fontSize: 10, fontWeight: 700, color: labelColor }}>{c.unit}</span>}
           </div>
 
           {/* Sparkline */}
           <div style={{ height: 32, marginTop: 6 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={spark(c.b, c.n)}>
-                <Line type="monotone" dataKey="v" stroke={c.color} strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                <Line type="monotone" dataKey="v" stroke={c.color} strokeWidth={1.8} dot={false} isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          <div style={{ fontSize: 9, fontWeight: 700, marginTop: 3, color: c.pos ? '#10B981' : '#EF4444' }}>
-            {c.trend} <span style={{ color: '#64748b', fontWeight: 400 }}>vs yesterday</span>
+          <div style={{ fontSize: 9, fontWeight: 800, marginTop: 3, color: c.pos ? '#10B981' : '#EF4444' }}>
+            {c.trend} <span style={{ color: labelColor, fontWeight: 500 }}>vs yesterday</span>
           </div>
         </div>
       ))}
