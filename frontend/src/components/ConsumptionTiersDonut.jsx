@@ -1,84 +1,53 @@
 import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { stateData } from '../data/stateData';
 import getColorScale from '../utils/colorScale';
 
-const TIER_COLORS = {
-  High: '#EF4444',
-  Medium: '#F59E0B',
-  Low: '#10B981',
-};
+const TIERS = [
+  { name: 'High Tier',   color: '#EF4444', key: 'High'   },
+  { name: 'Medium Tier', color: '#F59E0B', key: 'Medium' },
+  { name: 'Low Tier',    color: '#10B981', key: 'Low'    },
+];
 
-function ConsumptionTiersDonut() {
-  const tierCounts = useMemo(() => {
+export default function ConsumptionTiersDonut() {
+  const data = useMemo(() => {
     const counts = { High: 0, Medium: 0, Low: 0 };
-    stateData.forEach(s => {
-      const { tier } = getColorScale(s.electricityConsumption);
-      if (counts[tier] !== undefined) counts[tier]++;
-    });
+    stateData.forEach(s => { const { tier } = getColorScale(s.electricityConsumption); if (counts[tier] !== undefined) counts[tier]++; });
     const total = stateData.length;
-    return [
-      { name: 'High Tier', value: counts.High, pct: ((counts.High / total) * 100).toFixed(0), color: TIER_COLORS.High },
-      { name: 'Medium Tier', value: counts.Medium, pct: ((counts.Medium / total) * 100).toFixed(0), color: TIER_COLORS.Medium },
-      { name: 'Low Tier', value: counts.Low, pct: ((counts.Low / total) * 100).toFixed(0), color: TIER_COLORS.Low },
-    ];
+    return TIERS.map(t => ({ ...t, value: counts[t.key], pct: Math.round((counts[t.key] / total) * 100) }));
   }, []);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.3, duration: 0.5 }}
-      className="bg-[#131824] border border-white/5 rounded-xl p-4"
-    >
-      <p className="text-[10px] font-black text-white uppercase tracking-[0.15em] mb-3">Electricity Consumption Tiers</p>
-
-      <div className="flex items-center space-x-3">
-        {/* Donut */}
-        <div className="h-28 w-28 shrink-0">
+    <div style={{ background: '#131824', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '12px 14px' }}>
+      <div style={{ fontSize: 10, fontWeight: 900, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 }}>
+        Electricity Consumption Tiers
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 100, height: 100, flexShrink: 0 }}>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Pie
-                data={tierCounts}
-                cx="50%"
-                cy="50%"
-                innerRadius={28}
-                outerRadius={48}
-                paddingAngle={3}
-                dataKey="value"
-                isAnimationActive={true}
-              >
-                {tierCounts.map((entry, i) => (
-                  <Cell key={i} fill={entry.color} stroke="transparent" />
-                ))}
+              <Pie data={data} cx="50%" cy="50%" innerRadius={28} outerRadius={46} paddingAngle={3} dataKey="value" isAnimationActive>
+                {data.map((e, i) => <Cell key={i} fill={e.color} stroke="transparent" />)}
               </Pie>
-              <Tooltip
-                contentStyle={{ backgroundColor: '#131824', borderColor: 'rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 10 }}
-                formatter={(val, name) => [val + ' states', name]}
-              />
+              <Tooltip contentStyle={{ background: '#131824', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 10 }} formatter={(v, n) => [`${v} states`, n]} />
             </PieChart>
           </ResponsiveContainer>
         </div>
-
-        {/* Legend */}
-        <div className="space-y-2 flex-1">
-          {tierCounts.map(t => (
-            <div key={t.name} className="flex items-center justify-between">
-              <div className="flex items-center space-x-1.5">
-                <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: t.color }}></span>
-                <span className="text-[9px] text-slate-400 font-semibold">{t.name}</span>
+        <div style={{ flex: 1 }}>
+          {data.map(t => (
+            <div key={t.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: t.color, display: 'inline-block' }}></span>
+                <span style={{ fontSize: 9, color: '#94a3b8', fontWeight: 600 }}>{t.name}</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-[9px] text-slate-500">{t.value} states</span>
-                <span className="text-[10px] font-bold text-slate-200">{t.pct}%</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 8, color: '#64748b' }}>{`> ${t.key === 'High' ? '2,000' : t.key === 'Medium' ? '1,000' : ''} kWh`}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0' }}>{t.pct}%</span>
               </div>
             </div>
           ))}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
-
-export default ConsumptionTiersDonut;

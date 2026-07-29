@@ -2,49 +2,42 @@ import React from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { stateData } from '../data/stateData';
 
-function SelectedStateBar({ selectedState }) {
-  const state = stateData.find(s => s.name === selectedState);
+export default function SelectedStateBar({ selectedState }) {
+  const s = stateData.find(x => x.name === selectedState);
 
-  if (!state) {
-    return (
-      <div className="bg-[#131824] border border-white/5 rounded-xl px-4 py-2.5 flex items-center justify-center">
-        <p className="text-[10px] text-slate-500 font-medium">Click any state on the map to view detailed analytics</p>
-      </div>
-    );
-  }
+  if (!s) return (
+    <div style={{ background: '#131824', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '9px 14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <span style={{ fontSize: 10, color: '#64748b' }}>Click any state on the map to view detailed analytics</span>
+    </div>
+  );
 
-  const renewableShare = ((1 - state.emissionFactor) * 100).toFixed(1);
-  const demandForecast = (state.electricityConsumption * 1.092).toFixed(0);
+  const renewShare = ((1 - s.emissionFactor) * 100).toFixed(1);
+  const demandForecast = Math.round(s.electricityConsumption * 1.092).toLocaleString();
 
   const metrics = [
-    { label: 'Consumption', value: `${state.electricityConsumption.toLocaleString()} kWh`, trend: '+8.7%', up: true },
-    { label: 'Carbon Emission', value: `${state.carbonEmission.toLocaleString()} kg`, trend: '-6.3%', up: false },
-    { label: 'Renewable Share', value: `${renewableShare}%`, trend: '+12.4%', up: true },
-    { label: 'Demand Forecast', value: `${Number(demandForecast).toLocaleString()} kWh`, trend: '+9.2%', up: true },
+    { label: 'Consumption',     value: `${s.electricityConsumption.toLocaleString()} kWh`, trend: '+8.7%',  up: true  },
+    { label: 'Carbon Emission', value: `${s.carbonEmission.toLocaleString()} Tons`,         trend: '-6.3%',  up: false },
+    { label: 'Renewable Share', value: `${renewShare}%`,                                    trend: '+12.4%', up: true  },
+    { label: 'Demand Forecast', value: `${demandForecast} kWh`,                             trend: '+9.2%',  up: true  },
   ];
 
   return (
-    <div className="bg-[#131824] border border-white/5 rounded-xl px-4 py-2.5 flex items-center space-x-6 overflow-x-auto">
-      <div className="shrink-0">
-        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Selected State</p>
-        <p className="text-sm font-black text-accentBlue mt-0.5">{state.name}</p>
+    <div style={{ background: '#131824', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '9px 16px', display: 'flex', alignItems: 'center', gap: 20, overflowX: 'auto' }}>
+      <div style={{ flexShrink: 0 }}>
+        <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Selected State</div>
+        <div style={{ fontSize: 14, fontWeight: 900, color: '#3B82F6', marginTop: 2 }}>{s.name}</div>
       </div>
-      <div className="w-px h-8 bg-white/5 shrink-0"></div>
-      {metrics.map((m) => (
-        <div key={m.label} className="shrink-0">
-          <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{m.label}</p>
-          <p className="text-sm font-bold text-white mt-0.5">{m.value}</p>
-          <div className={`flex items-center space-x-0.5 text-[9px] font-bold mt-0.5 ${m.up ? 'text-emerald-400' : 'text-red-400'}`}>
-            {m.up
-              ? <TrendingUp className="h-2.5 w-2.5" />
-              : <TrendingDown className="h-2.5 w-2.5" />
-            }
-            <span>{m.trend}</span>
+      <div style={{ width: 1, height: 32, background: 'rgba(255,255,255,0.06)', flexShrink: 0 }}></div>
+      {metrics.map(m => (
+        <div key={m.label} style={{ flexShrink: 0 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{m.label}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginTop: 2 }}>{m.value}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 2, fontSize: 9, fontWeight: 700, color: m.up ? '#10B981' : '#EF4444' }}>
+            {m.up ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
+            {m.trend}
           </div>
         </div>
       ))}
     </div>
   );
 }
-
-export default SelectedStateBar;

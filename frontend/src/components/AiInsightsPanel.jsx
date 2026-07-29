@@ -1,84 +1,52 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { BrainCircuit, Sparkles, TrendingUp, Sun, Shield, Zap } from 'lucide-react';
+import { BrainCircuit, TrendingUp, Sun, Shield, Zap, Sparkles } from 'lucide-react';
 
 const INSIGHTS = [
-  {
-    icon: TrendingUp,
-    color: 'text-amber-400',
-    bg: 'bg-amber-400/10',
-    text: 'Energy demand in Karnataka likely to increase by 8% tomorrow based on weather patterns.',
-  },
-  {
-    icon: Sun,
-    color: 'text-emerald-400',
-    bg: 'bg-emerald-400/10',
-    text: 'Solar generation efficiency at peak performance (95%) — optimal output window.',
-  },
-  {
-    icon: Shield,
-    color: 'text-blue-400',
-    bg: 'bg-blue-400/10',
-    text: 'Grid stability is optimal across 80% of monitored states with no anomalies detected.',
-  },
-  {
-    icon: Zap,
-    color: 'text-purple-400',
-    bg: 'bg-purple-400/10',
-    text: 'Rajasthan wind farms operating at 112% of rated capacity — excess fed to national grid.',
-  },
+  { Icon: TrendingUp, color: '#F59E0B', bg: 'rgba(245,158,11,0.12)', text: 'Energy demand in Karnataka likely to increase by 8% tomorrow based on weather patterns.' },
+  { Icon: Sun,        color: '#10B981', bg: 'rgba(16,185,129,0.12)', text: 'Solar generation efficiency at peak performance (95%) — optimal output window active.' },
+  { Icon: Shield,     color: '#3B82F6', bg: 'rgba(59,130,246,0.12)', text: 'Grid stability is optimal across 80% of states — no critical anomalies detected.' },
+  { Icon: Zap,        color: '#A855F7', bg: 'rgba(168,85,247,0.12)', text: 'Rajasthan wind farms operating at 112% rated capacity — excess routed to national grid.' },
 ];
 
-function AiInsightsPanel() {
+export default function AiInsightsPanel() {
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.5, duration: 0.5 }}
-      className="bg-[#131824] border border-white/5 rounded-xl p-4 flex flex-col h-full"
-    >
-      {/* Header with AI badge */}
-      <div className="flex items-center space-x-3 mb-4">
-        <div className="relative shrink-0">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
-            <BrainCircuit className="h-5 w-5 text-white" />
+    <div style={{ background: '#131824', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '12px 14px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#7c3aed,#3B82F6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 16px rgba(124,58,237,0.35)' }}>
+            <BrainCircuit size={18} color="#fff" />
           </div>
-          <span className="absolute -top-1 -right-1 h-3 w-3 bg-accentGreen rounded-full border border-[#131824] animate-pulse"></span>
+          <span style={{ position: 'absolute', top: -2, right: -2, width: 9, height: 9, background: '#10B981', borderRadius: '50%', border: '2px solid #131824', animation: 'pulse 2s infinite' }}></span>
         </div>
         <div>
-          <p className="text-[10px] font-black text-white uppercase tracking-[0.15em]">AI Powered Insights</p>
-          <p className="text-[9px] text-slate-500 font-medium mt-0.5">ML-generated predictions · Updated 2m ago</p>
+          <div style={{ fontSize: 10, fontWeight: 900, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.12em', lineHeight: 1 }}>AI Powered Insights</div>
+          <div style={{ fontSize: 9, color: '#64748b', marginTop: 2 }}>ML predictions · Updated 2m ago</div>
         </div>
       </div>
 
-      {/* Insights list */}
-      <div className="space-y-2.5 flex-1">
-        {INSIGHTS.map((item, i) => {
-          const Icon = item.icon;
-          return (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.6 + i * 0.1 }}
-              className="flex items-start space-x-2.5 bg-white/[0.03] border border-white/5 rounded-lg p-2.5"
-            >
-              <div className={`shrink-0 p-1.5 rounded-lg ${item.bg}`}>
-                <Icon className={`h-3 w-3 ${item.color}`} />
-              </div>
-              <p className="text-[10px] text-slate-300 leading-relaxed font-medium">{item.text}</p>
-            </motion.div>
-          );
-        })}
+      {/* Insights */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {INSIGHTS.map((item, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 9, padding: '8px 10px' }}>
+            <div style={{ background: item.bg, borderRadius: 7, padding: 5, flexShrink: 0 }}>
+              <item.Icon size={11} color={item.color} />
+            </div>
+            <p style={{ fontSize: 10, color: '#94a3b8', lineHeight: 1.5, margin: 0, fontWeight: 500 }}>{item.text}</p>
+          </div>
+        ))}
       </div>
 
-      {/* Generate report button */}
-      <button className="mt-4 w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold text-[10px] py-2.5 rounded-xl transition-all hover:shadow-lg hover:shadow-purple-500/25 active:scale-[0.98]">
-        <Sparkles className="h-3.5 w-3.5" />
-        <span>Generate AI Report</span>
+      {/* CTA button */}
+      <button style={{ marginTop: 12, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'linear-gradient(90deg,#7c3aed,#3B82F6)', border: 'none', borderRadius: 10, padding: '9px 0', fontSize: 10, fontWeight: 700, color: '#fff', cursor: 'pointer', boxShadow: '0 4px 16px rgba(124,58,237,0.3)', transition: 'opacity 0.2s' }}
+        onMouseEnter={e => e.currentTarget.style.opacity='0.85'}
+        onMouseLeave={e => e.currentTarget.style.opacity='1'}>
+        <Sparkles size={12} />
+        Generate AI Report
       </button>
-    </motion.div>
+
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
+    </div>
   );
 }
-
-export default AiInsightsPanel;

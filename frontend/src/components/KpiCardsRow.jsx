@@ -1,142 +1,54 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { Zap, Leaf, Sun, Building2, BrainCircuit, Activity } from 'lucide-react';
 
-const spark = (base, noise = 15) =>
-  Array.from({ length: 10 }, (_, i) => ({
-    v: base + Math.sin(i * 1.3) * noise + (i % 3 === 0 ? noise * 0.5 : -noise * 0.2),
-  }));
+const spark = (base, noise) =>
+  Array.from({ length: 10 }, (_, i) => ({ v: base + Math.sin(i * 1.4) * noise }));
 
 const CARDS = [
-  {
-    label: 'Total Electricity',
-    value: '124.8',
-    unit: 'GW',
-    trend: '↑ 12.5%',
-    pos: true,
-    Icon: Zap,
-    color: '#3B82F6',
-    iconBg: 'bg-blue-500/20',
-    sparkBase: 65,
-    noise: 18,
-  },
-  {
-    label: 'Carbon Saved',
-    value: '24,987',
-    unit: 'Tons',
-    trend: '↑ 18.7%',
-    pos: true,
-    Icon: Leaf,
-    color: '#10B981',
-    iconBg: 'bg-emerald-500/20',
-    sparkBase: 50,
-    noise: 12,
-  },
-  {
-    label: 'Renewable Share',
-    value: '42.6',
-    unit: '%',
-    trend: '↑ 8.3%',
-    pos: true,
-    Icon: Sun,
-    color: '#F59E0B',
-    iconBg: 'bg-amber-500/20',
-    sparkBase: 42,
-    noise: 6,
-  },
-  {
-    label: 'Active Plants',
-    value: '276',
-    unit: '',
-    trend: '↑ 5',
-    pos: true,
-    Icon: Building2,
-    color: '#A855F7',
-    iconBg: 'bg-purple-500/20',
-    sparkBase: 274,
-    noise: 4,
-  },
-  {
-    label: 'AI Accuracy',
-    value: '94.2',
-    unit: '%',
-    trend: '↑ 2.1%',
-    pos: true,
-    Icon: BrainCircuit,
-    color: '#06B6D4',
-    iconBg: 'bg-cyan-500/20',
-    sparkBase: 93,
-    noise: 3,
-  },
-  {
-    label: 'Energy Demand',
-    value: '98.6',
-    unit: 'GW',
-    trend: '↑ 9.8%',
-    pos: false,
-    Icon: Activity,
-    color: '#F97316',
-    iconBg: 'bg-orange-500/20',
-    sparkBase: 88,
-    noise: 14,
-  },
+  { label: 'Total Electricity', value: '124.8', unit: 'GW',    trend: '↑ 12.5%', pos: true,  Icon: Zap,         color: '#3B82F6', bg: 'rgba(59,130,246,0.15)',   b: 80, n: 18 },
+  { label: 'Carbon Saved',      value: '24,987', unit: 'Tons',  trend: '↑ 18.7%', pos: true,  Icon: Leaf,        color: '#10B981', bg: 'rgba(16,185,129,0.15)',   b: 55, n: 12 },
+  { label: 'Renewable Share',   value: '42.6',   unit: '%',     trend: '↑ 8.3%',  pos: true,  Icon: Sun,         color: '#F59E0B', bg: 'rgba(245,158,11,0.15)',   b: 42, n: 6  },
+  { label: 'Active Plants',     value: '276',    unit: '',      trend: '↑ 5',     pos: true,  Icon: Building2,   color: '#A855F7', bg: 'rgba(168,85,247,0.15)',   b: 272, n: 5 },
+  { label: 'AI Accuracy',       value: '94.2',   unit: '%',     trend: '↑ 2.1%',  pos: true,  Icon: BrainCircuit,color: '#06B6D4', bg: 'rgba(6,182,212,0.15)',    b: 93, n: 3  },
+  { label: 'Energy Demand',     value: '98.6',   unit: 'GW',    trend: '↑ 9.8%',  pos: false, Icon: Activity,    color: '#F97316', bg: 'rgba(249,115,22,0.15)',   b: 85, n: 14 },
 ];
 
-function KpiCardsRow() {
+export default function KpiCardsRow() {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2.5">
-      {CARDS.map((card, i) => {
-        const sparkData = spark(card.sparkBase, card.noise);
-        return (
-          <motion.div
-            key={card.label}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.06, duration: 0.4 }}
-            className="bg-[#131824] border border-white/5 rounded-xl p-3 hover:border-white/10 hover:shadow-lg hover:shadow-black/30 transition-all cursor-default"
-          >
-            {/* Icon chip */}
-            <div className={`inline-flex p-1.5 rounded-lg ${card.iconBg} mb-2`}>
-              <card.Icon className="h-3.5 w-3.5" style={{ color: card.color }} />
-            </div>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: 10 }}>
+      {CARDS.map((c, i) => (
+        <div key={c.label} style={{ background: '#131824', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '12px 14px', cursor: 'default', transition: 'box-shadow 0.2s' }}
+          onMouseEnter={e => e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,0.35)'}
+          onMouseLeave={e => e.currentTarget.style.boxShadow='none'}>
 
-            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest leading-none">
-              {card.label}
-            </p>
+          <div style={{ background: c.bg, borderRadius: 8, padding: 6, display: 'inline-flex', marginBottom: 8 }}>
+            <c.Icon size={14} color={c.color} />
+          </div>
 
-            <div className="flex items-baseline space-x-1 mt-1">
-              <span className="text-[22px] font-black text-white leading-none">{card.value}</span>
-              {card.unit && (
-                <span className="text-[10px] font-bold text-slate-500">{card.unit}</span>
-              )}
-            </div>
+          <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', lineHeight: 1 }}>
+            {c.label}
+          </div>
 
-            {/* Sparkline */}
-            <div className="h-8 w-full mt-1">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={sparkData}>
-                  <Line
-                    type="monotone"
-                    dataKey="v"
-                    stroke={card.color}
-                    strokeWidth={1.5}
-                    dot={false}
-                    isAnimationActive={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 4 }}>
+            <span style={{ fontSize: 22, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{c.value}</span>
+            {c.unit && <span style={{ fontSize: 10, fontWeight: 700, color: '#64748b' }}>{c.unit}</span>}
+          </div>
 
-            <p className={`text-[9px] font-bold mt-0.5 ${card.pos ? 'text-emerald-400' : 'text-red-400'}`}>
-              {card.trend}{' '}
-              <span className="text-slate-500 font-normal">vs yesterday</span>
-            </p>
-          </motion.div>
-        );
-      })}
+          {/* Sparkline */}
+          <div style={{ height: 32, marginTop: 6 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={spark(c.b, c.n)}>
+                <Line type="monotone" dataKey="v" stroke={c.color} strokeWidth={1.5} dot={false} isAnimationActive={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div style={{ fontSize: 9, fontWeight: 700, marginTop: 3, color: c.pos ? '#10B981' : '#EF4444' }}>
+            {c.trend} <span style={{ color: '#64748b', fontWeight: 400 }}>vs yesterday</span>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
-
-export default KpiCardsRow;

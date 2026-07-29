@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Lightbulb, Bell, ChevronDown, User as UserIcon } from 'lucide-react';
+import { Lightbulb, Bell, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-function Header({ onProfileClick, notificationCount = 3 }) {
+export default function Header({ onProfileClick, notificationCount = 0 }) {
   const { currentUser } = useAuth();
   const [time, setTime] = useState(new Date());
 
@@ -11,94 +11,85 @@ function Header({ onProfileClick, notificationCount = 3 }) {
     return () => clearInterval(t);
   }, []);
 
-  const avatar = (() => {
-    try {
-      const key = `profile_meta_${currentUser?.email || currentUser?.uid}`;
-      const stored = localStorage.getItem(key);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.avatar) return parsed.avatar;
-      }
-    } catch (_) {}
-    return null;
-  })();
-
-  const formatTime = (d) => {
-    let h = d.getHours();
-    const m = String(d.getMinutes()).padStart(2, '0');
-    const s = String(d.getSeconds()).padStart(2, '0');
-    const ampm = h >= 12 ? 'PM' : 'AM';
+  const fmt = d => {
+    let h = d.getHours(), m = String(d.getMinutes()).padStart(2,'0'), s = String(d.getSeconds()).padStart(2,'0');
+    const ap = h >= 12 ? 'PM' : 'AM';
     h = h % 12 || 12;
-    return `${h}:${m}:${s} ${ampm}`;
+    return `${h}:${m}:${s} ${ap}`;
   };
 
+  const avatar = (() => {
+    try {
+      const k = `profile_meta_${currentUser?.email || currentUser?.uid}`;
+      const p = JSON.parse(localStorage.getItem(k) || '{}');
+      return p.avatar || null;
+    } catch { return null; }
+  })();
+
+  const name = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Operator';
+
   return (
-    <header className="h-14 bg-[#0d1219] border-b border-white/5 flex items-center justify-between px-5 shrink-0 z-30">
-      {/* Center: page title */}
-      <div className="flex items-center space-x-3">
-        <div className="p-2 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
-          <Lightbulb className="h-4 w-4 text-yellow-400" />
+    <header style={{ height: 56, background: '#0d1219', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', flexShrink: 0, zIndex: 30 }}>
+
+      {/* Center: title */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ background: 'rgba(234,179,8,0.12)', border: '1px solid rgba(234,179,8,0.25)', borderRadius: 10, padding: 7 }}>
+          <Lightbulb size={15} color="#EAB308" />
         </div>
         <div>
-          <p className="text-[11px] font-black text-white uppercase tracking-[0.12em] leading-none">
+          <div style={{ fontSize: 11, fontWeight: 900, color: '#fff', letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1 }}>
             EcoWatt AI National Analytics Center
-          </p>
-          <p className="text-[9px] text-slate-500 leading-none mt-0.5 font-medium">
+          </div>
+          <div style={{ fontSize: 9, color: '#64748b', marginTop: 2, fontWeight: 500 }}>
             Powering India's Sustainable Future
-          </p>
+          </div>
         </div>
       </div>
 
-      {/* Right: status + clock + bell + user */}
-      <div className="flex items-center space-x-4">
-        {/* Live status pill */}
-        <div className="flex items-center space-x-1.5 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-full">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+      {/* Right: pill + clock + bell + user */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+
+        {/* Live pill */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 999, padding: '5px 12px' }}>
+          <span style={{ position: 'relative', display: 'inline-flex', width: 8, height: 8 }}>
+            <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: '#10B981', opacity: 0.7, animation: 'ping 1.5s cubic-bezier(0,0,0.2,1) infinite' }}></span>
+            <span style={{ position: 'relative', width: 8, height: 8, borderRadius: '50%', background: '#10B981', display: 'inline-block' }}></span>
           </span>
-          <span className="text-[10px] font-bold text-emerald-400 tracking-wide">Live Monitoring</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: '#10B981', letterSpacing: '0.05em' }}>Live Monitoring</span>
         </div>
 
         {/* Clock */}
-        <span className="text-[11px] font-mono font-semibold text-slate-400 tabular-nums min-w-[90px]">
-          {formatTime(time)}
+        <span style={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 600, color: '#94a3b8', minWidth: 90 }}>
+          {fmt(time)}
         </span>
 
-        {/* Notification Bell */}
-        <button className="relative p-1.5 text-slate-400 hover:text-slate-200 transition-colors">
-          <Bell className="h-4 w-4" />
+        {/* Bell */}
+        <button style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 4 }}>
+          <Bell size={16} />
           {notificationCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 h-4 w-4 bg-accentBlue rounded-full text-[8px] font-bold text-white flex items-center justify-center">
+            <span style={{ position: 'absolute', top: 0, right: 0, background: '#3B82F6', borderRadius: '50%', width: 14, height: 14, fontSize: 8, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {notificationCount}
             </span>
           )}
         </button>
 
-        {/* User pill */}
-        <button
-          onClick={onProfileClick}
-          className="flex items-center space-x-2 hover:bg-white/5 px-2 py-1.5 rounded-xl transition-all"
-        >
-          <div className="h-7 w-7 rounded-full bg-gradient-to-br from-accentBlue to-blue-700 overflow-hidden border border-white/10 shrink-0 flex items-center justify-center">
+        {/* User */}
+        <button onClick={onProfileClick} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '5px 10px', cursor: 'pointer' }}>
+          <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg,#3B82F6,#1d4ed8)', border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             {avatar
-              ? <img src={avatar} alt="avatar" className="h-full w-full object-cover" />
-              : <span className="text-[9px] font-black text-white">
-                  {(currentUser?.displayName || currentUser?.email || 'U')[0].toUpperCase()}
-                </span>
+              ? <img src={avatar} alt="av" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <span style={{ fontSize: 10, fontWeight: 900, color: '#fff' }}>{name[0].toUpperCase()}</span>
             }
           </div>
-          <div className="text-left">
-            <p className="text-[10px] font-bold text-slate-200 leading-none max-w-[80px] truncate">
-              {currentUser?.displayName || 'Operator'}
-            </p>
-            <p className="text-[9px] text-slate-500 leading-none mt-0.5">Administrator</p>
+          <div style={{ textAlign: 'left' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+            <div style={{ fontSize: 9, color: '#64748b' }}>Administrator</div>
           </div>
-          <ChevronDown className="h-3 w-3 text-slate-500" />
+          <ChevronDown size={12} color="#64748b" />
         </button>
       </div>
+
+      <style>{`@keyframes ping { 75%,100%{transform:scale(2);opacity:0} }`}</style>
     </header>
   );
 }
-
-export default Header;

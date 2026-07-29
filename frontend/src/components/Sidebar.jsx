@@ -1,149 +1,119 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import {
-  LayoutDashboard,
-  Map,
-  BarChart3,
-  Leaf,
-  BrainCircuit,
-  Wind,
-  Network,
-  FileText,
-  BellRing,
-  Settings,
-  Zap,
-  LogOut,
-  User as UserIcon,
-  Globe,
+  LayoutDashboard, Map, BarChart3, Leaf, BrainCircuit,
+  Wind, Network, FileText, BellRing, Settings,
+  Zap, LogOut, User as UserIcon, Globe,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const NAV_ITEMS = [
-  { id: 'overview',      label: 'Dashboard',          icon: LayoutDashboard },
-  { id: 'national-map',  label: 'National Map',        icon: Map             },
-  { id: 'forecasting',   label: 'Energy Analytics',    icon: BarChart3       },
-  { id: 'carbon',        label: 'Carbon Audit',        icon: Leaf            },
-  { id: 'forecasting',   label: 'AI Predictions',      icon: BrainCircuit    },
-  { id: 'optimization',  label: 'Renewable Sources',   icon: Wind            },
-  { id: 'optimization',  label: 'Grid Status',         icon: Network         },
-  { id: 'reports',       label: 'Reports',             icon: FileText        },
-  { id: 'anomalies',     label: 'Alerts Center',       icon: BellRing        },
-  { id: 'profile',       label: 'Settings',            icon: Settings        },
+const NAV = [
+  { id: 'overview',     label: 'Dashboard',         Icon: LayoutDashboard },
+  { id: 'national-map', label: 'National Map',       Icon: Map             },
+  { id: 'forecasting',  label: 'Energy Analytics',   Icon: BarChart3       },
+  { id: 'carbon',       label: 'Carbon Audit',       Icon: Leaf            },
+  { id: 'forecasting',  label: 'AI Predictions',     Icon: BrainCircuit    },
+  { id: 'optimization', label: 'Renewable Sources',  Icon: Wind            },
+  { id: 'optimization', label: 'Grid Status',        Icon: Network         },
+  { id: 'reports',      label: 'Reports',            Icon: FileText        },
+  { id: 'anomalies',    label: 'Alerts Center',      Icon: BellRing        },
+  { id: 'profile',      label: 'Settings',           Icon: Settings        },
 ];
 
-function Sidebar({ activePage, setActivePage, activeAnomalyCount, pendingOptCount, onLogout }) {
+export default function Sidebar({ activePage, setActivePage, activeAnomalyCount, pendingOptCount, onLogout }) {
   const { currentUser } = useAuth();
-
   const avatar = (() => {
-    try {
-      const key = `profile_meta_${currentUser?.email || currentUser?.uid}`;
-      const stored = localStorage.getItem(key);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.avatar) return parsed.avatar;
-      }
-    } catch (_) {}
-    return null;
+    try { const p = JSON.parse(localStorage.getItem(`profile_meta_${currentUser?.email || currentUser?.uid}`) || '{}'); return p.avatar || null; }
+    catch { return null; }
   })();
+  const name = currentUser?.displayName || currentUser?.email?.split('@')[0] || 'Operator';
+  const email = currentUser?.email || '';
 
   return (
-    <aside className="w-52 bg-[#0b0f19] border-r border-white/5 flex flex-col shrink-0 overflow-hidden">
+    <aside style={{ width: 200, background: '#0b0f19', borderRight: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', flexShrink: 0, overflow: 'hidden' }}>
 
-      {/* Logo at top */}
-      <div className="px-4 py-4 border-b border-white/5 flex items-center space-x-2.5">
-        <div className="bg-accentBlue/20 p-1.5 rounded-lg border border-accentBlue/30 shrink-0">
-          <Zap className="h-4 w-4 text-accentBlue" />
+      {/* Logo */}
+      <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ background: 'rgba(59,130,246,0.18)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 8, padding: 6, flexShrink: 0 }}>
+          <Zap size={15} color="#3B82F6" />
         </div>
         <div>
-          <p className="text-[11px] font-black text-white leading-none">EcoWatt AI</p>
-          <p className="text-[9px] text-slate-500 font-semibold uppercase tracking-widest leading-none mt-0.5">SEMS Optimization</p>
+          <div style={{ fontSize: 12, fontWeight: 900, color: '#fff', lineHeight: 1 }}>EcoWatt AI</div>
+          <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 2 }}>SEMS Optimization</div>
         </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
-        {NAV_ITEMS.map((item, idx) => {
-          const Icon = item.icon;
-          const isActive = activePage === item.id;
-          const isBellWithBadge = item.id === 'anomalies' && activeAnomalyCount > 0;
-
+      <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 8px' }}>
+        {NAV.map((item, idx) => {
+          const active = activePage === item.id;
+          const isBell = item.id === 'anomalies' && activeAnomalyCount > 0;
           return (
-            <motion.button
+            <button
               key={`${item.label}-${idx}`}
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: idx * 0.035 }}
               onClick={() => setActivePage(item.id)}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[11px] font-semibold transition-all group ${
-                isActive
-                  ? 'bg-accentBlue/15 text-accentBlue border-l-[3px] border-accentBlue pl-[9px]'
-                  : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.04] border-l-[3px] border-transparent pl-[9px]'
-              }`}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '8px 10px 8px 9px', borderRadius: 8, marginBottom: 2, cursor: 'pointer', border: 'none',
+                borderLeft: active ? '3px solid #3B82F6' : '3px solid transparent',
+                background: active ? 'rgba(59,130,246,0.12)' : 'transparent',
+                color: active ? '#3B82F6' : '#64748b',
+                fontSize: 11, fontWeight: 600,
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => { if (!active) { e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.color='#cbd5e1'; } }}
+              onMouseLeave={e => { if (!active) { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='#64748b'; } }}
             >
-              <div className="flex items-center space-x-2.5">
-                <Icon className={`h-[15px] w-[15px] shrink-0 ${isActive ? 'text-accentBlue' : 'text-slate-600 group-hover:text-slate-400'}`} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                <item.Icon size={14} />
                 <span>{item.label}</span>
               </div>
-              {isBellWithBadge && (
-                <span className="px-1.5 py-0.5 text-[8px] rounded-full font-bold bg-red-500/20 text-red-400">
+              {isBell && (
+                <span style={{ background: 'rgba(239,68,68,0.2)', color: '#ef4444', fontSize: 8, fontWeight: 700, padding: '2px 5px', borderRadius: 999 }}>
                   {activeAnomalyCount}
                 </span>
               )}
-            </motion.button>
+            </button>
           );
         })}
       </nav>
 
-      {/* Bottom branding card */}
-      <div className="px-2 pb-2 space-y-2">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="bg-gradient-to-br from-[#0f2340] via-[#0a1a10] to-[#0d1219] border border-white/5 rounded-xl p-3"
-        >
-          <div className="flex items-center space-x-2 mb-2">
-            <div className="bg-accentGreen/20 p-1.5 rounded-lg">
-              <Globe className="h-3.5 w-3.5 text-accentGreen" />
+      {/* Branding card + profile */}
+      <div style={{ padding: '8px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+
+        {/* Branding card */}
+        <div style={{ background: 'linear-gradient(135deg,#0f2340 0%,#0a1a10 100%)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 12px', marginBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
+            <div style={{ background: 'rgba(16,185,129,0.2)', borderRadius: 7, padding: 5 }}>
+              <Globe size={12} color="#10B981" />
             </div>
-            <p className="text-[9px] font-black text-white leading-none">EcoWatt AI</p>
+            <span style={{ fontSize: 10, fontWeight: 900, color: '#fff' }}>EcoWatt AI</span>
           </div>
-          <p className="text-[8px] text-slate-500 leading-relaxed">
-            Empowering a Greener Tomorrow
-          </p>
-        </motion.div>
+          <p style={{ fontSize: 8, color: '#64748b', lineHeight: 1.5, margin: 0 }}>Empowering a Greener Tomorrow</p>
+        </div>
 
         {/* Profile row */}
-        <button
-          onClick={() => setActivePage('profile')}
-          className="w-full flex items-center space-x-2 hover:bg-white/5 rounded-xl px-2 py-1.5 transition-all"
-        >
-          <div className="h-7 w-7 rounded-full bg-gradient-to-br from-slate-700 to-slate-800 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
-            {avatar
-              ? <img src={avatar} alt="avatar" className="h-full w-full object-cover" />
-              : <UserIcon className="h-3.5 w-3.5 text-slate-400" />
-            }
+        <button onClick={() => setActivePage('profile')}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', borderRadius: 8, marginBottom: 6 }}
+          onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,0.04)'}
+          onMouseLeave={e => e.currentTarget.style.background='none'}>
+          <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            {avatar ? <img src={avatar} alt="av" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <UserIcon size={13} color="#94a3b8" />}
           </div>
-          <div className="text-left min-w-0 flex-1">
-            <p className="text-[10px] font-bold text-slate-200 truncate leading-none">
-              {currentUser?.displayName || 'Operator'}
-            </p>
-            <p className="text-[8px] text-slate-500 truncate mt-0.5">
-              {currentUser?.email || ''}
-            </p>
+          <div style={{ textAlign: 'left', minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+            <div style={{ fontSize: 8, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{email}</div>
           </div>
         </button>
 
-        <button
-          onClick={onLogout}
-          className="w-full flex items-center justify-center space-x-2 py-1.5 rounded-lg border border-white/5 hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400 text-slate-600 text-[10px] font-bold transition-all"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-          <span>Sign Out</span>
+        {/* Sign out */}
+        <button onClick={onLogout}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'none', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '6px 0', fontSize: 10, fontWeight: 700, color: '#64748b', cursor: 'pointer' }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(239,68,68,0.35)'; e.currentTarget.style.background='rgba(239,68,68,0.1)'; e.currentTarget.style.color='#ef4444'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor='rgba(255,255,255,0.07)'; e.currentTarget.style.background='none'; e.currentTarget.style.color='#64748b'; }}>
+          <LogOut size={12} />
+          Sign Out
         </button>
       </div>
     </aside>
   );
 }
-
-export default Sidebar;
