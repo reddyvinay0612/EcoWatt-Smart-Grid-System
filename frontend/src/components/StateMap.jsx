@@ -238,7 +238,7 @@ function StateMap({
     : null;
 
   return (
-    <div className="w-full flex flex-col md:flex-row gap-6 items-stretch min-h-[450px]">
+    <div className="w-full flex flex-col md:flex-row gap-6 items-stretch min-h-[450px] p-5">
       
       {/* Left side: Vector Map Display */}
       <div 
@@ -364,7 +364,7 @@ function StateMap({
       </div>
 
       {/* Right side: Clickable District Badges List */}
-      <div className="w-full md:w-64 flex flex-col justify-start space-y-2 max-h-[420px] overflow-y-auto pr-1">
+      <div className="w-full md:w-64 flex flex-col justify-start space-y-2 max-h-[420px] overflow-y-auto pr-1 pb-6">
         <div className="mb-2">
           <h5 className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
             Select District
