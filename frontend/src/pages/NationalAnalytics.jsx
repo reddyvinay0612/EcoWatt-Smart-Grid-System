@@ -92,21 +92,16 @@ export default function NationalAnalytics() {
     if (view === 'india') return stateData.map(s => {
       const { tier: et } = getColorScale(s.electricityConsumption);
       const { tier: ct } = getColorScale(s.carbonEmission, null, 'carbon');
-      return { ...s, value: activeMetric === 'carbon' ? s.carbonEmission : s.electricityConsumption, tier: activeMetric === 'carbon' ? ct : et, elecTier: et, carbTier: ct };
+      return { ...s, value: activeMetric === 'carbon' ? s.carbonEmission : s.electricityConsumption, tier: activeMetric === 'carbon' ? ct : et, elecTier: et, carbTier: ct, isState: true };
     });
     const sa = stateData.find(s => s.name === selectedState)?.electricityConsumption || 1000;
     const ca = stateData.find(s => s.name === selectedState)?.carbonEmission || 800;
     return districts.map(d => {
       const { tier: et } = getColorScale(d.electricityConsumption, sa);
       const { tier: ct } = getColorScale(d.carbonEmission, ca, 'carbon');
-      return { ...d, value: activeMetric === 'carbon' ? d.carbonEmission : d.electricityConsumption, tier: activeMetric === 'carbon' ? ct : et, elecTier: et, carbTier: ct };
+      return { ...d, value: activeMetric === 'carbon' ? d.carbonEmission : d.electricityConsumption, tier: activeMetric === 'carbon' ? ct : et, elecTier: et, carbTier: ct, isState: false };
     });
   }, [view, selectedState, districts, activeMetric]);
-
-  const cmpItems = useMemo(() => ({
-    itemA: dataset.find(x => x.name === compareA),
-    itemB: dataset.find(x => x.name === compareB)
-  }), [compareA, compareB, dataset]);
 
   const detailItem = useMemo(() => {
     if (view === 'india') {
@@ -130,7 +125,7 @@ export default function NationalAnalytics() {
       };
     }
     if (!selectedDistrict) return null;
-    const d = districts.find(x => x.name === selectedDistrict);
+    const d = districts.find(x => x.name.toLowerCase() === String(selectedDistrict).toLowerCase());
     if (!d) return null;
     const sa = stateData.find(s => s.name === selectedState)?.electricityConsumption || 1000;
     const ca = stateData.find(s => s.name === selectedState)?.carbonEmission || 800;
@@ -252,14 +247,27 @@ export default function NationalAnalytics() {
               selectedState={selectedState}
               districts={dataset}
               selectedDistrict={selectedDistrict}
-              onSelectDistrict={d => setSelectedDist(d.name || d)}
+              onSelectDistrict={d => setSelectedDist(typeof d === 'object' ? d.name : d)}
               tierFilter={tierFilter}
               isDarkMode={isDarkMode}
               stateAverage={stateData.find(s => s.name === selectedState)?.electricityConsumption || 1000}
               activeMetric={activeMetric}
             />
           </div>
-          {detailItem && <DetailPanel item={detailItem} currentView={view} activeMetric={activeMetric} isDarkMode={isDarkMode} />}
+          {detailItem ? (
+            <DetailPanel
+              {...detailItem}
+              parentState={detailItem.isState ? null : selectedState}
+              averageLabel={detailItem.isState ? 'National Avg' : 'State Avg'}
+              activeMetric={activeMetric}
+              isDarkMode={isDarkMode}
+              onClose={() => setSelectedDist(null)}
+            />
+          ) : (
+            <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: labelColor }}>
+              <span style={{ fontSize: 12, fontWeight: 700 }}>Select a district on the map or from the list to view detailed audit</span>
+            </div>
+          )}
         </div>
 
         {/* District Rankings + Comparison */}
@@ -268,13 +276,20 @@ export default function NationalAnalytics() {
             <div style={{ fontSize: 10, fontWeight: 900, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>
               District Rankings — {selectedState}
             </div>
-            <RankingTable data={dataset} onSelect={d => setSelectedDist(d.name || d)} metric={activeMetric} type="needy" isDarkMode={isDarkMode} />
+            <RankingTable data={dataset} onSelect={d => setSelectedDist(typeof d === 'object' ? d.name : d)} metric={activeMetric} type="needy" isDarkMode={isDarkMode} />
           </div>
           <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, padding: 16 }}>
-            <div style={{ fontSize: 10, fontWeight: 900, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>
-              District Comparison
-            </div>
-            <ComparisonChart items={dataset} compareA={compareA} setCompareA={setCompareA} compareB={compareB} setCompareB={setCompareB} comparisonItems={cmpItems} activeMetric={activeMetric} isDarkMode={isDarkMode} />
+            <ComparisonChart
+              items={dataset}
+              compareA={compareA}
+              setCompareA={setCompareA}
+              compareB={compareB}
+              setCompareB={setCompareB}
+              averageValueElec={stateData.find(s => s.name === selectedState)?.electricityConsumption || 1000}
+              averageValueCarbon={stateData.find(s => s.name === selectedState)?.carbonEmission || 800}
+              averageLabel="State Average"
+              isDarkMode={isDarkMode}
+            />
           </div>
         </div>
 
