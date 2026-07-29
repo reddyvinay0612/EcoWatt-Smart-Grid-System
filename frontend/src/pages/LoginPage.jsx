@@ -9,7 +9,7 @@ function LoginPage({ onToggleRegister }) {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const getFriendlyErrorMessage = (code) => {
+  const getFriendlyErrorMessage = (code, rawMessage) => {
     switch (code) {
       case 'auth/invalid-email':
         return 'Please enter a valid email address.';
@@ -21,8 +21,12 @@ function LoginPage({ onToggleRegister }) {
         return 'Incorrect password. Please try again.';
       case 'auth/invalid-credential':
         return 'Incorrect email or password. Please verify credentials.';
+      case 'auth/operation-not-allowed':
+        return 'Login is disabled. Please enable "Email/Password" provider under Firebase Console -> Authentication -> Sign-in method.';
+      case 'auth/network-request-failed':
+        return 'Network connection failed. Check your internet connection or Firebase API config.';
       default:
-        return 'Authentication failed. Please verify credentials.';
+        return `Authentication failed: ${rawMessage || 'Please verify credentials.'}`;
     }
   };
 
@@ -35,7 +39,7 @@ function LoginPage({ onToggleRegister }) {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (err) {
       console.error("Login error:", err);
-      setError(getFriendlyErrorMessage(err.code));
+      setError(getFriendlyErrorMessage(err.code, err.message));
     } finally {
       setIsLoading(false);
     }

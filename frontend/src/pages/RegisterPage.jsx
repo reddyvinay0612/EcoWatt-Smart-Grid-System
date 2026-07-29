@@ -11,7 +11,7 @@ function RegisterPage({ onToggleLogin }) {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const getFriendlyErrorMessage = (code) => {
+  const getFriendlyErrorMessage = (code, rawMessage) => {
     switch (code) {
       case 'auth/email-already-in-use':
         return 'This email address is already in use by another account.';
@@ -19,8 +19,12 @@ function RegisterPage({ onToggleLogin }) {
         return 'Please enter a valid email address.';
       case 'auth/weak-password':
         return 'Password is too weak. It must be at least 6 characters.';
+      case 'auth/operation-not-allowed':
+        return 'Registration is disabled. Please enable "Email/Password" provider under Firebase Console -> Authentication -> Sign-in method.';
+      case 'auth/network-request-failed':
+        return 'Network connection failed. Check your internet connection or Firebase API config.';
       default:
-        return 'Registration failed. Please try again.';
+        return `Registration failed: ${rawMessage || 'Please verify config.'}`;
     }
   };
 
@@ -52,7 +56,7 @@ function RegisterPage({ onToggleLogin }) {
       
     } catch (err) {
       console.error("Registration error:", err);
-      setError(getFriendlyErrorMessage(err.code));
+      setError(getFriendlyErrorMessage(err.code, err.message));
     } finally {
       setIsLoading(false);
     }
