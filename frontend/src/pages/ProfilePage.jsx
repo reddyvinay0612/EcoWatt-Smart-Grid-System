@@ -52,15 +52,15 @@ function ProfilePage({ onBackToDashboard }) {
   // Load custom profile metadata on mount
   useEffect(() => {
     const loadProfileData = async () => {
-      // 1. Try Firestore if real Firebase
+      // 1. Try Realtime Database if real Firebase
       try {
         const { isPlaceholder } = await import('../firebase/config');
         if (!isPlaceholder && currentUser?.uid) {
-          const { db } = await import('../firebase/config');
-          const { doc, getDoc } = await import('firebase/firestore');
-          const docSnap = await getDoc(doc(db, "users", currentUser.uid));
-          if (docSnap.exists()) {
-            const data = docSnap.data();
+          const { database } = await import('../firebase/config');
+          const { ref, get, child } = await import('firebase/database');
+          const snapshot = await get(child(ref(database), `users/${currentUser.uid}`));
+          if (snapshot.exists()) {
+            const data = snapshot.val();
             setPhone(data.phone || '');
             setOrganization(data.organization || '');
             setRole(data.role || '');
@@ -68,8 +68,8 @@ function ProfilePage({ onBackToDashboard }) {
             return;
           }
         }
-      } catch (fsErr) {
-        console.error("Firestore read failed (falling back to localStorage):", fsErr);
+      } catch (dbErr) {
+        console.error("Realtime Database read failed (falling back to localStorage):", dbErr);
       }
 
       // 2. LocalStorage Fallback
@@ -123,13 +123,13 @@ function ProfilePage({ onBackToDashboard }) {
       const meta = { phone, organization, role, avatar };
       localStorage.setItem(userKey, JSON.stringify(meta));
 
-      // 3. Write to Firestore if real Firebase
+      // 3. Write to Realtime Database if real Firebase
       try {
         const { isPlaceholder } = await import('../firebase/config');
         if (!isPlaceholder && currentUser?.uid) {
-          const { db } = await import('../firebase/config');
-          const { doc, setDoc } = await import('firebase/firestore');
-          await setDoc(doc(db, "users", currentUser.uid), {
+          const { database } = await import('../firebase/config');
+          const { ref, update } = await import('firebase/database');
+          await update(ref(database, `users/${currentUser.uid}`), {
             uid: currentUser.uid,
             fullName: fullName,
             email: currentUser.email,
@@ -138,10 +138,10 @@ function ProfilePage({ onBackToDashboard }) {
             role,
             avatar,
             updatedAt: new Date().toISOString()
-          }, { merge: true });
+          });
         }
-      } catch (fsErr) {
-        console.error("Firestore write failed:", fsErr);
+      } catch (dbErr) {
+        console.error("Realtime Database write failed:", dbErr);
       }
       
       // Sync display name in current session

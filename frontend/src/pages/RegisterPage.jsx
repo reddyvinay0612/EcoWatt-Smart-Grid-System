@@ -54,12 +54,12 @@ function RegisterPage({ onToggleLogin }) {
         displayName: fullName
       });
 
-      // Write details to Firestore in real Firebase mode
+      // Write details to Realtime Database in real Firebase mode
       if (!isPlaceholder && userCredential.user) {
         try {
-          const { db } = await import('../firebase/config');
-          const { doc, setDoc } = await import('firebase/firestore');
-          await setDoc(doc(db, "users", userCredential.user.uid), {
+          const { database } = await import('../firebase/config');
+          const { ref, set } = await import('firebase/database');
+          await set(ref(database, 'users/' + userCredential.user.uid), {
             uid: userCredential.user.uid,
             fullName: fullName,
             email: email,
@@ -69,8 +69,8 @@ function RegisterPage({ onToggleLogin }) {
             avatar: '',
             createdAt: new Date().toISOString()
           });
-        } catch (fsErr) {
-          console.error("Firestore document write failed (make sure Firestore is enabled in Firebase Console):", fsErr);
+        } catch (dbErr) {
+          console.error("Realtime Database document write failed:", dbErr);
         }
       }
       
