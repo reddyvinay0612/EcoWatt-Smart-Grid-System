@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { updateProfile } from '../firebase/auth';
 import { updateUserPassword, deleteUserAccount } from '../firebase/auth';
+import allDistricts from '../data/allDistricts';
 import { 
   User, 
   Mail, 
@@ -16,7 +17,14 @@ import {
   X, 
   Loader,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  Calendar,
+  Users,
+  MapPin,
+  Globe,
+  Linkedin,
+  FileText,
+  Map
 } from 'lucide-react';
 
 function ProfilePage({ onBackToDashboard }) {
@@ -32,6 +40,17 @@ function ProfilePage({ onBackToDashboard }) {
   const [organization, setOrganization] = useState('');
   const [role, setRole] = useState('');
   const [avatar, setAvatar] = useState('');
+  
+  // New user credentials fields
+  const [age, setAge] = useState('');
+  const [gender, setGender] = useState('Male');
+  const [dob, setDob] = useState('');
+  const [address, setAddress] = useState('');
+  const [stateName, setStateName] = useState('');
+  const [country, setCountry] = useState('India');
+  const [altEmail, setAltEmail] = useState('');
+  const [portfolioUrl, setPortfolioUrl] = useState('');
+  const [bio, setBio] = useState('');
   
   // Change password states
   const [currentPassword, setCurrentPassword] = useState('');
@@ -65,6 +84,17 @@ function ProfilePage({ onBackToDashboard }) {
             setOrganization(data.organization || '');
             setRole(data.role || '');
             setAvatar(data.avatar || '');
+            
+            // Load new fields
+            setAge(data.age || '');
+            setGender(data.gender || 'Male');
+            setDob(data.dob || '');
+            setAddress(data.address || '');
+            setStateName(data.stateName || '');
+            setCountry(data.country || 'India');
+            setAltEmail(data.altEmail || '');
+            setPortfolioUrl(data.portfolioUrl || '');
+            setBio(data.bio || '');
             return;
           }
         }
@@ -81,6 +111,17 @@ function ProfilePage({ onBackToDashboard }) {
           setOrganization(parsed.organization || '');
           setRole(parsed.role || '');
           setAvatar(parsed.avatar || '');
+          
+          // Load new fields
+          setAge(parsed.age || '');
+          setGender(parsed.gender || 'Male');
+          setDob(parsed.dob || '');
+          setAddress(parsed.address || '');
+          setStateName(parsed.stateName || '');
+          setCountry(parsed.country || 'India');
+          setAltEmail(parsed.altEmail || '');
+          setPortfolioUrl(parsed.portfolioUrl || '');
+          setBio(parsed.bio || '');
         }
       } catch (e) {
         console.error("Failed to load local metadata", e);
@@ -98,6 +139,22 @@ function ProfilePage({ onBackToDashboard }) {
     }, 4000);
   };
 
+  const handleDobChange = (value) => {
+    setDob(value);
+    if (value) {
+      const birthDate = new Date(value);
+      const today = new Date();
+      let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        calculatedAge--;
+      }
+      if (calculatedAge >= 13 && calculatedAge <= 100) {
+        setAge(calculatedAge.toString());
+      }
+    }
+  };
+
   // Profile Save
   const handleSaveProfile = async (e) => {
     e.preventDefault();
@@ -113,6 +170,37 @@ function ProfilePage({ onBackToDashboard }) {
       return;
     }
 
+    // New validations
+    if (!age) {
+      showToast('error', 'Age is required.');
+      return;
+    }
+    const ageNum = parseInt(age);
+    if (isNaN(ageNum) || ageNum < 13 || ageNum > 100) {
+      showToast('error', 'Age must be a number between 13 and 100.');
+      return;
+    }
+
+    if (!gender) {
+      showToast('error', 'Gender is required.');
+      return;
+    }
+
+    if (portfolioUrl && !/^https?:\/\//i.test(portfolioUrl)) {
+      showToast('error', 'Portfolio URL must start with http:// or https://');
+      return;
+    }
+
+    if (altEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(altEmail)) {
+      showToast('error', 'Please enter a valid alternate email address.');
+      return;
+    }
+
+    if (bio && bio.length > 150) {
+      showToast('error', 'Bio must be under 150 characters.');
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -120,7 +208,10 @@ function ProfilePage({ onBackToDashboard }) {
       await updateProfile(currentUser, { displayName: fullName });
       
       // Save extra fields locally (always cache locally as backup)
-      const meta = { phone, organization, role, avatar };
+      const meta = { 
+        phone, organization, role, avatar,
+        age, gender, dob, address, stateName, country, altEmail, portfolioUrl, bio
+      };
       localStorage.setItem(userKey, JSON.stringify(meta));
 
       // 3. Write to Realtime Database if real Firebase
@@ -137,6 +228,15 @@ function ProfilePage({ onBackToDashboard }) {
             organization,
             role,
             avatar,
+            age,
+            gender,
+            dob,
+            address,
+            stateName,
+            country,
+            altEmail,
+            portfolioUrl,
+            bio,
             updatedAt: new Date().toISOString()
           });
         }
@@ -170,11 +270,33 @@ function ProfilePage({ onBackToDashboard }) {
         setOrganization(parsed.organization || '');
         setRole(parsed.role || '');
         setAvatar(parsed.avatar || '');
+        
+        // Revert new fields
+        setAge(parsed.age || '');
+        setGender(parsed.gender || 'Male');
+        setDob(parsed.dob || '');
+        setAddress(parsed.address || '');
+        setStateName(parsed.stateName || '');
+        setCountry(parsed.country || 'India');
+        setAltEmail(parsed.altEmail || '');
+        setPortfolioUrl(parsed.portfolioUrl || '');
+        setBio(parsed.bio || '');
       } else {
         setPhone('');
         setOrganization('');
         setRole('');
         setAvatar('');
+        
+        // Revert to defaults
+        setAge('');
+        setGender('Male');
+        setDob('');
+        setAddress('');
+        setStateName('');
+        setCountry('India');
+        setAltEmail('');
+        setPortfolioUrl('');
+        setBio('');
       }
     } catch (e) {}
     setIsEditing(false);
@@ -500,6 +622,162 @@ function ProfilePage({ onBackToDashboard }) {
                       value={role}
                       onChange={(e) => setRole(e.target.value)}
                       className="w-full bg-[#07090e]/60 border border-darkBorder/40 rounded-xl px-4 py-2.5 text-xs text-slate-200 outline-none focus:border-accentBlue disabled:opacity-50 disabled:bg-slate-900/10 transition-all"
+                    />
+                  </div>
+
+                  {/* Age Field */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center">
+                      <User className="h-3.5 w-3.5 mr-1.5 text-slate-500" /> Age (13-100) <span className="text-accentRed ml-0.5">*</span>
+                    </label>
+                    <input 
+                      type="number" 
+                      required
+                      disabled={!isEditing}
+                      placeholder="e.g. 25"
+                      min="13"
+                      max="100"
+                      value={age}
+                      onChange={(e) => setAge(e.target.value)}
+                      className="w-full bg-[#07090e]/60 border border-darkBorder/40 rounded-xl px-4 py-2.5 text-xs text-slate-200 outline-none focus:border-accentBlue disabled:opacity-50 disabled:bg-slate-900/10 transition-all"
+                    />
+                  </div>
+
+                  {/* Gender Field */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center">
+                      <Users className="h-3.5 w-3.5 mr-1.5 text-slate-500" /> Gender <span className="text-accentRed ml-0.5">*</span>
+                    </label>
+                    <select
+                      required
+                      disabled={!isEditing}
+                      value={gender}
+                      onChange={(e) => setGender(e.target.value)}
+                      className="w-full bg-[#090d16] border border-darkBorder/40 rounded-xl px-4 py-2.5 text-xs text-slate-200 outline-none focus:border-accentBlue disabled:opacity-50 disabled:bg-slate-900/10 transition-all cursor-pointer"
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                  </div>
+
+                  {/* Date of Birth Field */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center">
+                      <Calendar className="h-3.5 w-3.5 mr-1.5 text-slate-500" /> Date of Birth
+                    </label>
+                    <input 
+                      type="date" 
+                      disabled={!isEditing}
+                      value={dob}
+                      onChange={(e) => handleDobChange(e.target.value)}
+                      className="w-full bg-[#07090e]/60 border border-darkBorder/40 rounded-xl px-4 py-2.5 text-xs text-slate-200 outline-none focus:border-accentBlue disabled:opacity-50 disabled:bg-slate-900/10 transition-all [color-scheme:dark]"
+                    />
+                  </div>
+
+                  {/* Address / City Field */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center">
+                      <MapPin className="h-3.5 w-3.5 mr-1.5 text-slate-500" /> Address / City
+                    </label>
+                    <input 
+                      type="text" 
+                      disabled={!isEditing}
+                      placeholder="e.g. Mumbai"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      className="w-full bg-[#07090e]/60 border border-darkBorder/40 rounded-xl px-4 py-2.5 text-xs text-slate-200 outline-none focus:border-accentBlue disabled:opacity-50 disabled:bg-slate-900/10 transition-all"
+                    />
+                  </div>
+
+                  {/* State Field */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center">
+                      <Map className="h-3.5 w-3.5 mr-1.5 text-slate-500" /> State
+                    </label>
+                    <select
+                      disabled={!isEditing}
+                      value={stateName}
+                      onChange={(e) => setStateName(e.target.value)}
+                      className="w-full bg-[#090d16] border border-darkBorder/40 rounded-xl px-4 py-2.5 text-xs text-slate-200 outline-none focus:border-accentBlue disabled:opacity-50 disabled:bg-slate-900/10 transition-all cursor-pointer"
+                    >
+                      <option value="">Select State</option>
+                      {Object.keys(allDistricts).sort().map(st => (
+                        <option key={st} value={st}>{st}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Country Field */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center">
+                      <Globe className="h-3.5 w-3.5 mr-1.5 text-slate-500" /> Country
+                    </label>
+                    <select
+                      disabled={!isEditing}
+                      value={country}
+                      onChange={(e) => setCountry(e.target.value)}
+                      className="w-full bg-[#090d16] border border-darkBorder/40 rounded-xl px-4 py-2.5 text-xs text-slate-200 outline-none focus:border-accentBlue disabled:opacity-50 disabled:bg-slate-900/10 transition-all cursor-pointer"
+                    >
+                      <option value="India">India</option>
+                      <option value="United States">United States</option>
+                      <option value="United Kingdom">United Kingdom</option>
+                      <option value="Canada">Canada</option>
+                      <option value="Australia">Australia</option>
+                      <option value="Germany">Germany</option>
+                      <option value="France">France</option>
+                      <option value="Japan">Japan</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  {/* Alternate Email Field */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center">
+                      <Mail className="h-3.5 w-3.5 mr-1.5 text-slate-500" /> Alternate Email
+                    </label>
+                    <input 
+                      type="email" 
+                      disabled={!isEditing}
+                      placeholder="alternate@domain.com"
+                      value={altEmail}
+                      onChange={(e) => setAltEmail(e.target.value)}
+                      className="w-full bg-[#07090e]/60 border border-darkBorder/40 rounded-xl px-4 py-2.5 text-xs text-slate-200 outline-none focus:border-accentBlue disabled:opacity-50 disabled:bg-slate-900/10 transition-all"
+                    />
+                  </div>
+
+                  {/* LinkedIn / Portfolio URL Field */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center">
+                      <Linkedin className="h-3.5 w-3.5 mr-1.5 text-slate-500" /> LinkedIn / Portfolio
+                    </label>
+                    <input 
+                      type="url" 
+                      disabled={!isEditing}
+                      placeholder="https://linkedin.com/in/username"
+                      value={portfolioUrl}
+                      onChange={(e) => setPortfolioUrl(e.target.value)}
+                      className="w-full bg-[#07090e]/60 border border-darkBorder/40 rounded-xl px-4 py-2.5 text-xs text-slate-200 outline-none focus:border-accentBlue disabled:opacity-50 disabled:bg-slate-900/10 transition-all"
+                    />
+                  </div>
+
+                  {/* Bio / About Field (full width) */}
+                  <div className="space-y-1.5 md:col-span-2">
+                    <div className="flex justify-between items-center">
+                      <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center">
+                        <FileText className="h-3.5 w-3.5 mr-1.5 text-slate-500" /> Bio / About
+                      </label>
+                      <span className="text-[10px] text-slate-550 font-bold">{bio.length}/150</span>
+                    </div>
+                    <textarea 
+                      disabled={!isEditing}
+                      placeholder="Write a brief bio about yourself..."
+                      maxLength={150}
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      rows="3"
+                      className="w-full bg-[#07090e]/60 border border-darkBorder/40 rounded-xl px-4 py-2.5 text-xs text-slate-200 outline-none focus:border-accentBlue disabled:opacity-50 disabled:bg-slate-900/10 transition-all resize-none"
                     />
                   </div>
 
