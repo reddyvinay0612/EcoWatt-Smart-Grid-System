@@ -10,7 +10,7 @@ const TIERS = [
   { name: 'Low Tier',    color: '#10B981', key: 'Low'    },
 ];
 
-export default function ConsumptionTiersDonut() {
+export default function ConsumptionTiersDonut({ activeMetric = 'electricity' }) {
   const { isDarkMode } = useTheme();
 
   const cardBg = isDarkMode ? '#131824' : '#FFFFFF';
@@ -21,15 +21,21 @@ export default function ConsumptionTiersDonut() {
 
   const data = useMemo(() => {
     const counts = { High: 0, Medium: 0, Low: 0 };
-    stateData.forEach(s => { const { tier } = getColorScale(s.electricityConsumption); if (counts[tier] !== undefined) counts[tier]++; });
+    stateData.forEach(s => {
+      const val = activeMetric === 'carbon' ? s.carbonEmission : s.electricityConsumption;
+      const { tier } = getColorScale(val, null, activeMetric);
+      if (counts[tier] !== undefined) counts[tier]++;
+    });
     const total = stateData.length;
     return TIERS.map(t => ({ ...t, value: counts[t.key], pct: Math.round((counts[t.key] / total) * 100) }));
-  }, []);
+  }, [activeMetric]);
+
+  const isCarbon = activeMetric === 'carbon';
 
   return (
     <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, padding: '12px 14px' }}>
       <div style={{ fontSize: 10, fontWeight: 900, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 }}>
-        Electricity Consumption Tiers
+        {isCarbon ? 'Carbon Emission Tiers' : 'Electricity Consumption Tiers'}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ width: 100, height: 100, flexShrink: 0 }}>
@@ -50,7 +56,12 @@ export default function ConsumptionTiersDonut() {
                 <span style={{ fontSize: 9, color: labelColor, fontWeight: 700 }}>{t.name}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
-                <span style={{ fontSize: 8, color: labelColor }}>{`> ${t.key === 'High' ? '2,000' : t.key === 'Medium' ? '1,000' : ''} kWh`}</span>
+                <span style={{ fontSize: 8, color: labelColor }}>
+                  {isCarbon
+                    ? `> ${t.key === 'High' ? '1,600' : t.key === 'Medium' ? '800' : ''} kg`
+                    : `> ${t.key === 'High' ? '2,000' : t.key === 'Medium' ? '1,000' : ''} kWh`
+                  }
+                </span>
                 <span style={{ fontSize: 10, fontWeight: 800, color: valueColor }}>{t.pct}%</span>
               </div>
             </div>

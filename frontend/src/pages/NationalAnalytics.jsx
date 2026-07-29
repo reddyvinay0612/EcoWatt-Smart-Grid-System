@@ -169,7 +169,19 @@ export default function NationalAnalytics() {
         {/* Col 1: Map Toolbar + Live Map + Selected State Bar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-            <FilterButtons tierFilter={tierFilter} setTierFilter={setTierFilter} isDarkMode={isDarkMode} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <FilterButtons tierFilter={tierFilter} onFilterChange={setTierFilter} isDarkMode={isDarkMode} />
+              
+              {/* Metric Selector Toggler */}
+              <div style={{ display: 'flex', background: buttonBg, border: `1px solid ${buttonBorder}`, borderRadius: 8, padding: 2 }}>
+                {['electricity', 'carbon'].map(m => (
+                  <button key={m} onClick={() => setActiveMetric(m)} style={{ padding: '4px 12px', borderRadius: 6, fontSize: 10, fontWeight: 700, textTransform: 'capitalize', cursor: 'pointer', border: 'none', background: activeMetric === m ? '#3B82F6' : 'transparent', color: activeMetric === m ? '#fff' : labelColor }}>
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <SearchBar data={dataset} onSelect={n => handleSelectState(n)} isDarkMode={isDarkMode} />
               <button onClick={handleExport} style={{ display: 'flex', alignItems: 'center', gap: 5, background: buttonBg, border: `1px solid ${buttonBorder}`, borderRadius: 8, padding: '5px 10px', fontSize: 9, fontWeight: 700, color: labelColor, cursor: 'pointer' }}>
@@ -179,7 +191,13 @@ export default function NationalAnalytics() {
           </div>
 
           <div className="map-export" style={{ height: 380 }}>
-            <LiveNationalMap selectedState={selectedState} onSelectState={handleSelectState} tierFilter={tierFilter} />
+            <LiveNationalMap 
+              selectedState={selectedState} 
+              onSelectState={handleSelectState} 
+              tierFilter={tierFilter}
+              activeMetric={activeMetric}
+              setActiveMetric={setActiveMetric}
+            />
           </div>
 
           <SelectedStateBar selectedState={selectedState} />
@@ -187,7 +205,7 @@ export default function NationalAnalytics() {
 
         {/* Col 2: Tiers Donut + Trend Chart */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <ConsumptionTiersDonut />
+          <ConsumptionTiersDonut activeMetric={activeMetric} />
           <ConsumptionTrendChart />
         </div>
 
@@ -225,7 +243,7 @@ export default function NationalAnalytics() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <FilterButtons tierFilter={tierFilter} setTierFilter={setTierFilter} isDarkMode={isDarkMode} />
+            <FilterButtons tierFilter={tierFilter} onFilterChange={setTierFilter} isDarkMode={isDarkMode} />
             <div style={{ display: 'flex', background: buttonBg, border: `1px solid ${buttonBorder}`, borderRadius: 8, padding: 2 }}>
               {['electricity', 'carbon'].map(m => (
                 <button key={m} onClick={() => setActiveMetric(m)} style={{ padding: '4px 12px', borderRadius: 6, fontSize: 10, fontWeight: 700, textTransform: 'capitalize', cursor: 'pointer', border: 'none', background: activeMetric === m ? '#3B82F6' : 'transparent', color: activeMetric === m ? '#fff' : labelColor }}>
@@ -250,7 +268,11 @@ export default function NationalAnalytics() {
               onSelectDistrict={d => setSelectedDist(typeof d === 'object' ? d.name : d)}
               tierFilter={tierFilter}
               isDarkMode={isDarkMode}
-              stateAverage={stateData.find(s => s.name === selectedState)?.electricityConsumption || 1000}
+              stateAverage={
+                activeMetric === 'carbon'
+                  ? (stateData.find(s => s.name === selectedState)?.carbonEmission || 800)
+                  : (stateData.find(s => s.name === selectedState)?.electricityConsumption || 1000)
+              }
               activeMetric={activeMetric}
             />
           </div>

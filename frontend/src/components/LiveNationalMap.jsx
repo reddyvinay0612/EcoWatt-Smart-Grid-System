@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ChevronDown, ZoomIn, ZoomOut } from 'lucide-react';
 import IndiaMap from './IndiaMap';
 import { stateData } from '../data/stateData';
@@ -11,10 +11,15 @@ const LEGEND = [
   { label: 'Critical',  range: '< 500 kWh',        color: '#64748B' },
 ];
 
-export default function LiveNationalMap({ selectedState, onSelectState, tierFilter }) {
+export default function LiveNationalMap({ 
+  selectedState, 
+  onSelectState, 
+  tierFilter,
+  activeMetric = 'electricity',
+  setActiveMetric
+}) {
   const { isDarkMode } = useTheme();
-  const [metric, setMetric] = useState('electricity');
-  const [scale, setScale]   = useState(1.0);
+  const [scale, setScale] = useState(1.0);
 
   const cardBg = isDarkMode ? '#131824' : '#FFFFFF';
   const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
@@ -41,7 +46,9 @@ export default function LiveNationalMap({ selectedState, onSelectState, tierFilt
           <div style={{ fontSize: 9, color: subtitleColor, marginTop: 2, fontWeight: 600 }}>Real-time Electricity Consumption Overview</div>
         </div>
         <div style={{ position: 'relative' }}>
-          <select value={metric} onChange={e => setMetric(e.target.value)}
+          <select 
+            value={activeMetric} 
+            onChange={e => setActiveMetric && setActiveMetric(e.target.value)}
             style={{
               appearance: 'none',
               background: isDarkMode ? 'rgba(255,255,255,0.06)' : '#F1F5F9',
@@ -53,7 +60,8 @@ export default function LiveNationalMap({ selectedState, onSelectState, tierFilt
               color: isDarkMode ? '#cbd5e1' : '#0F172A',
               cursor: 'pointer',
               outline: 'none'
-            }}>
+            }}
+          >
             <option value="electricity">Electricity Consumption (kWh)</option>
             <option value="carbon">Carbon Emission (kg CO₂)</option>
           </select>
@@ -85,7 +93,7 @@ export default function LiveNationalMap({ selectedState, onSelectState, tierFilt
             onSelectState={onSelectState}
             tierFilter={tierFilter || 'All'}
             isDarkMode={isDarkMode}
-            activeMetric={metric}
+            activeMetric={activeMetric}
           />
         </div>
 
