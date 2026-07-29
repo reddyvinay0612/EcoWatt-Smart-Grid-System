@@ -114,9 +114,8 @@ function StateMap({
           const lngDiff = maxLng - minLng;
           const latDiff = maxLat - minLat;
           const maxDiff = Math.max(lngDiff, latDiff);
-          
-          // Calibrate scale based on bounding box
-          const scale = Math.min(18000, 3400 / (maxDiff || 1));
+          // Calibrate scale based on bounding box to fill the 500x500 viewport
+          const scale = Math.min(60000, 20000 / (maxDiff || 1));
           setMapConfig({ center, scale });
         }
         setImgLoading(false);
@@ -273,6 +272,8 @@ function StateMap({
                   scale: mapConfig.scale,
                   center: mapConfig.center
                 }}
+                width={500}
+                height={500}
                 className="w-full h-full"
               >
                 <Geographies geography={geoJsonData}>
