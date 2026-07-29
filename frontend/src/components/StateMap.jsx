@@ -170,7 +170,7 @@ function StateMap({
     if (!mapPath) {
       return (
         <div className={`flex flex-col items-center justify-center p-12 rounded-2xl border text-center min-h-[350px] ${
-          isDarkMode ? 'border-darkBorder/40 bg-slate-900/10' : 'border-slate-200 bg-white'
+          isDarkMode ? 'border-darkBorder/40 bg-slate-900/10' : 'border-slate-205 bg-white'
         }`}>
           <ShieldAlert className="h-10 w-10 text-amber-500 mb-4 animate-pulse" />
           <h4 className="font-bold text-sm text-slate-300 dark:text-slate-205">
@@ -197,6 +197,10 @@ function StateMap({
       return coords[index % coords.length];
     };
 
+    const targetDistrictName = selectedDistrict
+      ? (typeof selectedDistrict === 'object' ? selectedDistrict.name : selectedDistrict)
+      : null;
+
     return (
       <div className="relative w-full max-w-[480px] aspect-square flex items-center justify-center">
         <img
@@ -208,7 +212,7 @@ function StateMap({
           const value = activeMetric === 'carbon' ? d.carbonEmission : d.electricityConsumption;
           const { color, tier } = getColorScale(value, stateAverage, activeMetric);
           const pos = getPinPosition(index);
-          const isSelected = selectedDistrict?.name === d.name;
+          const isSelected = targetDistrictName && targetDistrictName.toLowerCase() === d.name.toLowerCase();
           const isFiltered = tierFilter !== 'All' && tier !== tierFilter;
 
           if (isFiltered || index >= 10) return null;
@@ -228,6 +232,10 @@ function StateMap({
       </div>
     );
   };
+
+  const targetDistrictName = selectedDistrict
+    ? (typeof selectedDistrict === 'object' ? selectedDistrict.name : selectedDistrict)
+    : null;
 
   return (
     <div className="w-full flex flex-col md:flex-row gap-6 items-stretch min-h-[450px]">
@@ -282,7 +290,7 @@ function StateMap({
                       const districtName = geo.properties.district || geo.properties.DISTRICT || geo.properties.NAME_2 || geo.properties.district_name;
                       const matchedDistrict = findDistrictMatch(districtName);
                       
-                      const isGeoSelected = selectedDistrict && matchedDistrict && selectedDistrict.name.toLowerCase() === matchedDistrict.name.toLowerCase();
+                      const isGeoSelected = targetDistrictName && matchedDistrict && targetDistrictName.toLowerCase() === matchedDistrict.name.toLowerCase();
                       
                       const value = matchedDistrict ? (activeMetric === 'carbon' ? matchedDistrict.carbonEmission : matchedDistrict.electricityConsumption) : null;
                       const { color, tier } = matchedDistrict ? getColorScale(value, stateAverage, activeMetric) : { color: isDarkMode ? '#1E293B' : '#CBD5E1', tier: 'Unknown' };
@@ -327,7 +335,7 @@ function StateMap({
 
                   const value = activeMetric === 'carbon' ? matchedDistrict.carbonEmission : matchedDistrict.electricityConsumption;
                   const { color, tier } = getColorScale(value, stateAverage, activeMetric);
-                  const isSelected = selectedDistrict && selectedDistrict.name.toLowerCase() === matchedDistrict.name.toLowerCase();
+                  const isSelected = targetDistrictName && targetDistrictName.toLowerCase() === matchedDistrict.name.toLowerCase();
                   
                   const isFiltered = tierFilter !== 'All' && tier !== tierFilter;
                   if (isFiltered) return null;
@@ -368,7 +376,7 @@ function StateMap({
         {districts.map((d) => {
           const value = activeMetric === 'carbon' ? d.carbonEmission : d.electricityConsumption;
           const { color, tier } = getColorScale(value, stateAverage, activeMetric);
-          const isSelected = selectedDistrict?.name === d.name;
+          const isSelected = targetDistrictName && targetDistrictName.toLowerCase() === d.name.toLowerCase();
           const isFiltered = tierFilter !== 'All' && tier !== tierFilter;
 
           if (isFiltered) return null;
@@ -403,6 +411,7 @@ function StateMap({
           );
         })}
       </div>
+
 
     </div>
   );
