@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lightbulb, Bell, ChevronDown } from 'lucide-react';
+import { Zap, Lightbulb, Bell, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Header({ onProfileClick, notificationCount = 0 }) {
@@ -12,7 +12,7 @@ export default function Header({ onProfileClick, notificationCount = 0 }) {
   }, []);
 
   const fmt = d => {
-    let h = d.getHours(), m = String(d.getMinutes()).padStart(2,'0'), s = String(d.getSeconds()).padStart(2,'0');
+    let h = d.getHours(), m = String(d.getMinutes()).padStart(2, '0'), s = String(d.getSeconds()).padStart(2, '0');
     const ap = h >= 12 ? 'PM' : 'AM';
     h = h % 12 || 12;
     return `${h}:${m}:${s} ${ap}`;
@@ -31,14 +31,25 @@ export default function Header({ onProfileClick, notificationCount = 0 }) {
   return (
     <header style={{ height: 56, background: '#0d1219', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', flexShrink: 0, zIndex: 30 }}>
 
-      {/* Center: title */}
+      {/* Left: Logo + App Name + Subtitle */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ background: 'rgba(59,130,246,0.18)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 8, padding: 6, flexShrink: 0 }}>
+          <Zap size={16} color="#3B82F6" />
+        </div>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 900, color: '#fff', lineHeight: 1 }}>EcoWatt AI</div>
+          <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 2 }}>SEMS Optimization</div>
+        </div>
+      </div>
+
+      {/* Center-left: Page Icon + Title + Subtitle */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ background: 'rgba(234,179,8,0.12)', border: '1px solid rgba(234,179,8,0.25)', borderRadius: 10, padding: 7 }}>
           <Lightbulb size={15} color="#EAB308" />
         </div>
         <div>
           <div style={{ fontSize: 11, fontWeight: 900, color: '#fff', letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1 }}>
-            EcoWatt AI National Analytics Center
+            ECOWATT AI NATIONAL ANALYTICS CENTER
           </div>
           <div style={{ fontSize: 9, color: '#64748b', marginTop: 2, fontWeight: 500 }}>
             Powering India's Sustainable Future
@@ -46,10 +57,10 @@ export default function Header({ onProfileClick, notificationCount = 0 }) {
         </div>
       </div>
 
-      {/* Right: pill + clock + bell + user */}
+      {/* Right side: Live Monitoring pill + live clock + notification bell + user avatar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
 
-        {/* Live pill */}
+        {/* Live Monitoring status pill */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 999, padding: '5px 12px' }}>
           <span style={{ position: 'relative', display: 'inline-flex', width: 8, height: 8 }}>
             <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: '#10B981', opacity: 0.7, animation: 'ping 1.5s cubic-bezier(0,0,0.2,1) infinite' }}></span>
@@ -58,12 +69,12 @@ export default function Header({ onProfileClick, notificationCount = 0 }) {
           <span style={{ fontSize: 10, fontWeight: 700, color: '#10B981', letterSpacing: '0.05em' }}>Live Monitoring</span>
         </div>
 
-        {/* Clock */}
+        {/* Live clock */}
         <span style={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 600, color: '#94a3b8', minWidth: 90 }}>
           {fmt(time)}
         </span>
 
-        {/* Bell */}
+        {/* Notification bell icon with badge count */}
         <button style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 4 }}>
           <Bell size={16} />
           {notificationCount > 0 && (
@@ -73,7 +84,7 @@ export default function Header({ onProfileClick, notificationCount = 0 }) {
           )}
         </button>
 
-        {/* User */}
+        {/* User avatar + name + role ("Administrator") with dropdown chevron */}
         <button onClick={onProfileClick} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '5px 10px', cursor: 'pointer' }}>
           <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg,#3B82F6,#1d4ed8)', border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             {avatar

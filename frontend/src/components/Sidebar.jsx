@@ -2,7 +2,7 @@ import React from 'react';
 import {
   LayoutDashboard, Map, BarChart3, Leaf, BrainCircuit,
   Wind, Network, FileText, BellRing, Settings,
-  Zap, LogOut, User as UserIcon, Globe,
+  LogOut, User as UserIcon, Globe,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -31,19 +31,8 @@ export default function Sidebar({ activePage, setActivePage, activeAnomalyCount,
   return (
     <aside style={{ width: 200, background: '#0b0f19', borderRight: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', flexShrink: 0, overflow: 'hidden' }}>
 
-      {/* Logo */}
-      <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ background: 'rgba(59,130,246,0.18)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 8, padding: 6, flexShrink: 0 }}>
-          <Zap size={15} color="#3B82F6" />
-        </div>
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 900, color: '#fff', lineHeight: 1 }}>EcoWatt AI</div>
-          <div style={{ fontSize: 8, color: '#64748b', fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 2 }}>SEMS Optimization</div>
-        </div>
-      </div>
-
-      {/* Nav */}
-      <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 8px' }}>
+      {/* Vertical Nav */}
+      <nav style={{ flex: 1, overflowY: 'auto', padding: '12px 8px' }}>
         {NAV.map((item, idx) => {
           const active = activePage === item.id;
           const isBell = item.id === 'anomalies' && activeAnomalyCount > 0;
@@ -53,7 +42,7 @@ export default function Sidebar({ activePage, setActivePage, activeAnomalyCount,
               onClick={() => setActivePage(item.id)}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '8px 10px 8px 9px', borderRadius: 8, marginBottom: 2, cursor: 'pointer', border: 'none',
+                padding: '9px 10px 9px 9px', borderRadius: 8, marginBottom: 4, cursor: 'pointer', border: 'none',
                 borderLeft: active ? '3px solid #3B82F6' : '3px solid transparent',
                 background: active ? 'rgba(59,130,246,0.12)' : 'transparent',
                 color: active ? '#3B82F6' : '#64748b',
@@ -64,7 +53,7 @@ export default function Sidebar({ activePage, setActivePage, activeAnomalyCount,
               onMouseLeave={e => { if (!active) { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='#64748b'; } }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                <item.Icon size={14} />
+                <item.Icon size={15} />
                 <span>{item.label}</span>
               </div>
               {isBell && (
@@ -77,7 +66,7 @@ export default function Sidebar({ activePage, setActivePage, activeAnomalyCount,
         })}
       </nav>
 
-      {/* Branding card + profile */}
+      {/* Bottom of sidebar: small branding card "EcoWatt AI — Empowering a Greener Tomorrow" */}
       <div style={{ padding: '8px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
 
         {/* Branding card */}
