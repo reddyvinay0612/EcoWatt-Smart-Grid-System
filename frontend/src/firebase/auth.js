@@ -118,3 +118,38 @@ export const onAuthStateChanged = (authObj, callback) => {
     authListeners = authListeners.filter(l => l !== callback);
   };
 };
+
+export const updateUserPassword = async (userObj, currentPassword, newPassword) => {
+  if (!isPlaceholder) {
+    const credential = realAuth.EmailAuthProvider.credential(userObj.email, currentPassword);
+    await realAuth.reauthenticateWithCredential(userObj, credential);
+    return realAuth.updatePassword(userObj, newPassword);
+  }
+  
+  const users = getMockUsers();
+  const userIndex = users.findIndex(u => u.email.toLowerCase() === userObj.email.toLowerCase());
+  if (userIndex === -1) {
+    throw { code: 'auth/user-not-found', message: 'User account not found.' };
+  }
+  if (users[userIndex].password !== currentPassword) {
+    throw { code: 'auth/wrong-password', message: 'Current password is incorrect.' };
+  }
+  users[userIndex].password = newPassword;
+  saveMockUsers(users);
+  return true;
+};
+
+export const deleteUserAccount = async (userObj, currentPassword) => {
+  if (!isPlaceholder) {
+    const credential = realAuth.EmailAuthProvider.credential(userObj.email, currentPassword);
+    await realAuth.reauthenticateWithCredential(userObj, credential);
+    return realAuth.deleteUser(userObj);
+  }
+  
+  const users = getMockUsers();
+  const filteredUsers = users.filter(u => u.email.toLowerCase() !== userObj.email.toLowerCase());
+  saveMockUsers(filteredUsers);
+  saveMockSession(null);
+  authListeners.forEach(listener => listener(null));
+  return true;
+};

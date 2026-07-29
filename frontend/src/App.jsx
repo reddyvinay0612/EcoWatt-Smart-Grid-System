@@ -21,6 +21,7 @@ import Optimization from './pages/Optimization';
 import Reports from './pages/Reports';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ProfilePage from './pages/ProfilePage';
 import { useAuth } from './context/AuthContext';
 
 import { authService, consumerService, dataService, anomalyService, optimizeService } from './services/api';
@@ -191,6 +192,8 @@ function App() {
               return <Optimization consumerId={consumerIdNum} activeConsumer={activeConsumer} onActionComplete={loadCounts} />;
             case 'reports':
               return <Reports consumerId={consumerIdNum} consumers={consumers} />;
+            case 'profile':
+              return <ProfilePage onBackToDashboard={() => setActivePage('overview')} />;
             default:
               return <Overview consumerId={consumerIdNum} activeConsumer={activeConsumer} />;
           }
@@ -249,9 +252,25 @@ function App() {
 
         {/* Sidebar Footer */}
         <div className="p-4 border-t border-darkBorder">
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="bg-slate-800 p-2 rounded-full">
-              <UserIcon className="h-4 w-4 text-slate-300" />
+          <div 
+            onClick={() => setActivePage('profile')}
+            className="flex items-center space-x-3 mb-4 cursor-pointer hover:bg-slate-800/30 p-2 rounded-xl transition-all"
+            title="View Profile Settings"
+          >
+            <div className="bg-slate-800 p-2 rounded-full shrink-0 flex items-center justify-center h-8 w-8 overflow-hidden">
+              {(() => {
+                const userKey = `profile_meta_${currentUser?.email || currentUser?.uid}`;
+                try {
+                  const stored = localStorage.getItem(userKey);
+                  if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (parsed.avatar) {
+                      return <img src={parsed.avatar} alt="Avatar" className="h-full w-full object-cover" />;
+                    }
+                  }
+                } catch (e) {}
+                return <UserIcon className="h-4 w-4 text-slate-300" />;
+              })()}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-semibold text-slate-200 truncate max-w-[130px]" title={currentUser?.displayName || 'Operator'}>
