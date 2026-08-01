@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Play } from 'lucide-react';
 
-import LoginPage      from './pages/LoginPage';
-import ProfilePage    from './pages/ProfilePage';
+import LoginPage         from './pages/LoginPage';
+import ProfilePage       from './pages/ProfilePage';
+import NationalAnalytics from './pages/NationalAnalytics';
 
 import Header  from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -41,7 +42,7 @@ function App() {
   const { isDarkMode } = useTheme();
   const isAuthenticated = !!currentUser;
 
-  const [activePage,          setActivePage]          = useState('overview');
+  const [activePage,          setActivePage]          = useState('national'); // Default to National Analytics
   const [households,          setHouseholds]          = useState([]);
   const [selectedHouseholdId, setSelectedHouseholdId] = useState('');
   
@@ -120,7 +121,7 @@ function App() {
   const handleLogout = async () => {
     try {
       await logout();
-      setActivePage('overview');
+      setActivePage('national');
     } catch (e) {
       console.error(e);
     }
@@ -130,6 +131,8 @@ function App() {
 
   const renderPage = () => {
     switch (activePage) {
+      case 'national':
+        return <NationalAnalytics />;
       case 'overview':
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -198,7 +201,7 @@ function App() {
       case 'evaluation':
         return <ModelComparisonPanel comparisonData={comparisonData} />;
       case 'profile':
-        return <ProfilePage onBackToDashboard={() => setActivePage('overview')} />;
+        return <ProfilePage onBackToDashboard={() => setActivePage('national')} />;
       default:
         return <NationalAnalytics />;
     }

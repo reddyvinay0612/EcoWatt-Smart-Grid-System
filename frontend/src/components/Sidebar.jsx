@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  LayoutDashboard, BarChart3, Settings,
+  Home, BarChart3, Settings,
   LogOut, User as UserIcon, Globe
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -28,9 +28,10 @@ export default function Sidebar({
   const hoverText = isDarkMode ? '#F8FAFC' : '#0F172A';
 
   const navItems = [
-    { id: 'overview',   label: 'Residential Monitor', Icon: LayoutDashboard },
-    { id: 'evaluation', label: 'Model Evaluation',    Icon: BarChart3       },
-    { id: 'profile',    label: 'Settings',            Icon: Settings        },
+    { id: 'national',   label: 'National Analytics',  Icon: Globe        },
+    { id: 'overview',   label: 'Residential Monitor',  Icon: Home         },
+    { id: 'evaluation', label: 'Model Evaluation',    Icon: BarChart3    },
+    { id: 'profile',    label: 'Settings',            Icon: Settings     },
   ];
 
   return (
@@ -54,7 +55,7 @@ export default function Sidebar({
           </span>
         </div>
         <span style={{ fontSize: 8, color: textInactive, display: 'block', marginTop: 2, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Residential SEMS
+          Smart Energy Grid
         </span>
       </div>
 
