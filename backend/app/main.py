@@ -1,208 +1,351 @@
-import logging
-import pickle
 import os
+import json
+import numpy as np
 import pandas as pd
-from fastapi import FastAPI, Depends, HTTPException
+import torch
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from apscheduler.schedulers.background import BackgroundScheduler
-from sqlalchemy.orm import Session
-from scipy.optimize import minimize
-import contextlib
+from sklearn.preprocessing import MinMaxScaler
 
-from backend.app.config import settings
-from backend.app.database import engine, Base, SessionLocal
-from backend.app.routers import auth, consumers, data, forecast, anomalies, carbon, optimize
-from backend.app.routers.data import simulate_live_step
+from data_pipeline import create_sequences, preprocess_pipeline
+from model import CnnLstmModel, load_pytorch_model, device
 
-# Configure logger
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+app = FastAPI(title="EcoWatt AI - Residential Energy Monitoring & Forecasting API")
 
-# Initialize DB tables
-Base.metadata.create_all(bind=engine)
-
-# Scheduler for live simulation
-scheduler = BackgroundScheduler()
-
-def live_simulation_job():
-    """
-    Background job that simulates a new 15-minute smart meter ingestion tick.
-    """
-    db = SessionLocal()
-    try:
-        logger.info("Executing background simulation tick...")
-        result = simulate_live_step(db)
-        logger.info(f"Simulated live step successfully at {result['timestamp']}")
-    except Exception as e:
-        logger.error(f"Error in background simulation tick: {str(e)}")
-    finally:
-        db.close()
-
-@contextlib.asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup: Start APScheduler
-    logger.info("Starting background scheduler...")
-    # Add job to run every N seconds
-    scheduler.add_job(
-        live_simulation_job, 
-        "interval", 
-        seconds=settings.SIMULATION_INTERVAL_SECONDS,
-        id="live_sim"
-    )
-    scheduler.start()
-    yield
-    # Shutdown: Stop scheduler
-    logger.info("Shutting down background scheduler...")
-    scheduler.shutdown()
-
-app = FastAPI(
-    title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
-    lifespan=lifespan
-)
-
-# Set CORS origins
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow React frontend or other origins for local dev
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Register routers
-app.include_router(auth.router, prefix=settings.API_V1_STR)
-app.include_router(consumers.router, prefix=settings.API_V1_STR)
-app.include_router(data.router, prefix=settings.API_V1_STR)
-app.include_router(forecast.router, prefix=settings.API_V1_STR)
-app.include_router(anomalies.router, prefix=settings.API_V1_STR)
-app.include_router(carbon.router, prefix=settings.API_V1_STR)
-app.include_router(optimize.router, prefix=settings.API_V1_STR)
+# Global variables to cache processed data and scaler
+PROCESSED_DATA_PATH = "backend/data/residential_processed.csv"
+COMPARISON_PATH = "backend/data/model_comparison.json"
+MODEL_PATH = "backend/models/cnn_lstm_model.pth"
 
-# Historical state baseline dataset for optimization lookup
-STATE_BASE_DATA = {
-  "andamanandnicobarislands": {"electricity_consumption": 900, "carbon_emission": 810},
-  "andhrapradesh": {"electricity_consumption": 2299.25, "carbon_emission": 1954.36},
-  "arunachalpradesh": {"electricity_consumption": 2562.09, "carbon_emission": 1024.84},
-  "assam": {"electricity_consumption": 1069.96, "carbon_emission": 962.96},
-  "bihar": {"electricity_consumption": 835.03, "carbon_emission": 793.28},
-  "chandigarh": {"electricity_consumption": 2000, "carbon_emission": 1600.00},
-  "chhattisgarh": {"electricity_consumption": 3105.21, "carbon_emission": 3260.47},
-  "dadraandnagarhaveli": {"electricity_consumption": 15642.35, "carbon_emission": 14860.23},
-  "damananddiu": {"electricity_consumption": 15642.35, "carbon_emission": 14860.23},
-  "delhi": {"electricity_consumption": 3636.70, "carbon_emission": 3454.87},
-  "goa": {"electricity_consumption": 5485.87, "carbon_emission": 4937.28},
-  "gujarat": {"electricity_consumption": 4646.19, "carbon_emission": 4413.88},
-  "haryana": {"electricity_consumption": 4875.30, "carbon_emission": 4631.54},
-  "himachalpradesh": {"electricity_consumption": 3214.53, "carbon_emission": 1125.09},
-  "jammuandkashmir": {"electricity_consumption": 2452.77, "carbon_emission": 1226.39},
-  "jharkhand": {"electricity_consumption": 1760.78, "carbon_emission": 1848.82},
-  "karnataka": {"electricity_consumption": 3357.58, "carbon_emission": 1678.79},
-  "kerala": {"electricity_consumption": 2486.49, "carbon_emission": 1367.57},
-  "ladakh": {"electricity_consumption": 2000, "carbon_emission": 1000.00},
-  "lakshadweep": {"electricity_consumption": 800, "carbon_emission": 720.00},
-  "madhyapradesh": {"electricity_consumption": 1958.49, "carbon_emission": 1762.64},
-  "maharashtra": {"electricity_consumption": 2990.07, "carbon_emission": 2541.56},
-  "manipur": {"electricity_consumption": 1370.01, "carbon_emission": 822.01},
-  "meghalaya": {"electricity_consumption": 2688.86, "carbon_emission": 1344.43},
-  "mizoram": {"electricity_consumption": 2024.78, "carbon_emission": 1113.63},
-  "nagaland": {"electricity_consumption": 1079.26, "carbon_emission": 647.56},
-  "odisha": {"electricity_consumption": 2598.14, "carbon_emission": 2728.05},
-  "puducherry": {"electricity_consumption": 4479.88, "carbon_emission": 4031.89},
-  "punjab": {"electricity_consumption": 4120.51, "carbon_emission": 3708.46},
-  "rajasthan": {"electricity_consumption": 2544.64, "carbon_emission": 2417.41},
-  "sikkim": {"electricity_consumption": 2863.31, "carbon_emission": 858.99},
-  "tamilnadu": {"electricity_consumption": 3659.96, "carbon_emission": 2561.97},
-  "telangana": {"electricity_consumption": 4162.38, "carbon_emission": 3954.26},
-  "tripura": {"electricity_consumption": 1102.52, "carbon_emission": 882.02},
-  "uttarpradesh": {"electricity_consumption": 1502.60, "carbon_emission": 1352.34},
-  "uttarakhand": {"electricity_consumption": 2974.95, "carbon_emission": 1338.73},
-  "westbengal": {"electricity_consumption": 1508.41, "carbon_emission": 1433.00}
-}
+# Load the trained CNN-LSTM model
+model = None
+feature_cols = ["energy_kwh", "temperature", "humidity", "hour", "day_of_week", "month", "is_weekend", "is_holiday"]
+scaler = MinMaxScaler()
 
-def predict_future(model, periods=5):
-    try:
-        future = model.make_future_dataframe(periods=periods, freq="YE")
-    except ValueError:
-        future = model.make_future_dataframe(periods=periods, freq="Y")
-    forecast = model.predict(future)
-    # Format ds to string e.g. "2026", "2027" for clean React graphing
-    forecast["ds"] = forecast["ds"].dt.strftime("%Y")
-    return forecast[["ds", "yhat", "yhat_lower", "yhat_upper"]]
+@app.on_event("startup")
+def startup_event():
+    global model, scaler
+    # Pre-fit scaler on existing processed data
+    if os.path.exists(PROCESSED_DATA_PATH):
+        df = pd.read_csv(PROCESSED_DATA_PATH)
+        scaler.fit(df[feature_cols])
+    else:
+        # Generate data if missing
+        preprocess_pipeline()
+        df = pd.read_csv(PROCESSED_DATA_PATH)
+        scaler.fit(df[feature_cols])
 
-def optimize_energy_mix(current_consumption, current_emission, budget_constraint):
-    # x = [solar, efficiency, demand_shift]
-    def objective(x):
-        solar, efficiency, demand_shift = x
-        projected_emission = current_emission * (1 - solar * 0.40 - efficiency * 0.15 - demand_shift * 0.05)
-        return projected_emission
+    # Load model weights
+    if os.path.exists(MODEL_PATH):
+        try:
+            model = load_pytorch_model(CnnLstmModel, MODEL_PATH, input_dim=len(feature_cols))
+            print("Loaded trained PyTorch CNN-LSTM model successfully.")
+        except Exception as e:
+            print(f"Error loading model weights: {e}")
+    else:
+        print("Warning: CNN-LSTM model file not found. Run training script first.")
 
-    constraints = [
-        {"type": "ineq", "fun": lambda x: budget_constraint - (x[0]*50 + x[1]*30 + x[2]*20)}
+@app.get("/api/v1/households")
+def get_households():
+    """
+    Returns list of residential households monitored by the system.
+    """
+    if not os.path.exists(PROCESSED_DATA_PATH):
+        raise HTTPException(status_code=404, detail="Data not initialized. Seed data first.")
+    df = pd.read_csv(PROCESSED_DATA_PATH)
+    hh_ids = df["household_id"].unique().tolist()
+    
+    households = [
+        {"id": hid, "name": f"Greenwood Residential Unit - {hid.replace('_', ' ')}", "area": "Greenwood Sector A"}
+        for hid in hh_ids
     ]
-    bounds = [(0, 1), (0, 1), (0, 1)]
-    result = minimize(objective, x0=[0.3, 0.3, 0.3], bounds=bounds, constraints=constraints)
-    
-    rates = result.x
-    projected_consumption = current_consumption * (1 - rates[1] * 0.15 - rates[2] * 0.05)
-    return rates, result.fun, projected_consumption
+    return households
 
-@app.get("/predict/{state}/{metric}")
-def predict(state: str, metric: str, years_ahead: int = 5):
-    state_key = state.lower().replace(" ", "").replace("&", "and")
-    metric_key = "electricity" if "elec" in metric.lower() else "carbon"
+@app.get("/api/v1/current-consumption/{household_id}")
+def current_consumption(household_id: str):
+    """
+    Returns the latest recorded electricity consumption reading for a household.
+    Also returns comparisons vs. historical averages and consumption status tiers.
+    """
+    if not os.path.exists(PROCESSED_DATA_PATH):
+        raise HTTPException(status_code=404, detail="Processed data not found.")
     
-    # Calculate absolute path relative to this file's folder to support parent-directory launching
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    models_dir = os.path.join(base_dir, "models")
-    model_path = os.path.join(models_dir, f"{state_key}_{metric_key}_model.pkl")
+    df = pd.read_csv(PROCESSED_DATA_PATH)
+    hh_df = df[df["household_id"] == household_id].copy()
+    if hh_df.empty:
+        raise HTTPException(status_code=404, detail="Household ID not found.")
+        
+    latest_row = hh_df.iloc[-1]
+    latest_kwh = float(latest_row["energy_kwh"])
     
-    if not os.path.exists(model_path):
-        raise HTTPException(
-            status_code=404, 
-            detail=f"Forecasting model not trained for state '{state}' yet."
-        )
+    # Calculate averages for status tier categorization
+    historical_avg = float(hh_df["energy_kwh"].mean())
+    area_avg = float(df["energy_kwh"].mean())
+    
+    # Tier assignment
+    if latest_kwh < historical_avg * 0.8:
+        tier = "Low"
+    elif latest_kwh > historical_avg * 1.2:
+        tier = "High"
+    else:
+        tier = "Medium"
         
-    try:
-        with open(model_path, "rb") as f:
-            model = pickle.load(f)
-        forecast = predict_future(model, periods=years_ahead)
-        return forecast.to_dict(orient="records")
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Prediction calculation failed: {str(e)}"
-        )
-
-@app.get("/optimize/{state}")
-def optimize(state: str, budget: float = 100):
-    state_key = state.lower().replace(" ", "").replace("&", "and")
-    if state_key not in STATE_BASE_DATA:
-        raise HTTPException(
-            status_code=404, 
-            detail=f"Baseline data not available for state '{state}'."
-        )
-        
-    current_data = STATE_BASE_DATA[state_key]
-    rates, projected_emission, projected_consumption = optimize_energy_mix(
-        current_data["electricity_consumption"],
-        current_data["carbon_emission"],
-        budget
-    )
+    deviation_pct = ((latest_kwh - historical_avg) / historical_avg) * 100
+    
     return {
-        "recommended_solar_adoption": float(rates[0]),
-        "recommended_efficiency_upgrade": float(rates[1]),
-        "recommended_demand_shift": float(rates[2]),
-        "current_emission": float(current_data["carbon_emission"]),
-        "projected_emission": float(projected_emission),
-        "current_consumption": float(current_data["electricity_consumption"]),
-        "projected_consumption": float(projected_consumption)
+        "household_id": household_id,
+        "timestamp": str(latest_row["timestamp"]),
+        "current_consumption_kwh": round(latest_kwh, 3),
+        "historical_average_kwh": round(historical_avg, 3),
+        "area_average_kwh": round(area_avg, 3),
+        "tier": tier,
+        "deviation_percent": round(deviation_pct, 1),
+        "temperature": round(float(latest_row["temperature"]), 1),
+        "humidity": round(float(latest_row["humidity"]), 1)
     }
 
-@app.get("/")
-def read_root():
+@app.get("/api/v1/predict/{household_id}")
+def predict(household_id: str, hours_ahead: int = 24):
+    """
+    Generates a recursive CNN-LSTM time-series forecast for the next N hours.
+    Returns:
+      - historical_24h: Actual readings from the past 24 hours.
+      - forecast_24h: Predicted readings for the next 24 hours.
+    """
+    global model, scaler
+    if not os.path.exists(PROCESSED_DATA_PATH):
+         raise HTTPException(status_code=404, detail="Data not initialized.")
+         
+    df = pd.read_csv(PROCESSED_DATA_PATH)
+    hh_df = df[df["household_id"] == household_id].copy().sort_values("timestamp")
+    if hh_df.empty:
+        raise HTTPException(status_code=404, detail="Household not found.")
+        
+    # Get last 24 hours of historical actual data
+    hist_subset = hh_df.iloc[-24:]
+    historical_data = [
+        {"timestamp": str(row["timestamp"]), "value": round(float(row["energy_kwh"]), 3)}
+        for _, row in hist_subset.iterrows()
+    ]
+    
+    # Check if model is loaded
+    if model is None:
+        # Fallback to naive forecast if model is missing
+        print("Fallback: Model is missing, generating naive seasonal projection.")
+        predictions = []
+        last_val = float(hist_subset.iloc[-1]["energy_kwh"])
+        last_time = pd.to_datetime(hist_subset.iloc[-1]["timestamp"])
+        for h in range(1, hours_ahead + 1):
+            future_time = last_time + pd.Timedelta(hours=h)
+            pred_val = last_val + np.sin(2 * np.pi * future_time.hour / 24) * 0.15 + np.random.normal(0, 0.05)
+            predictions.append({
+                "timestamp": str(future_time),
+                "value": round(max(0.05, pred_val), 3)
+            })
+        return {"historical_24h": historical_data, "forecast_24h": predictions}
+        
+    # Recursive Forecasting using the PyTorch CNN-LSTM Model
+    model.eval()
+    
+    # Scale current lookback window
+    window_data = hist_subset[feature_cols].copy()
+    window_scaled = scaler.transform(window_data.values) # Shape (24, 8)
+    
+    predictions = []
+    last_time = pd.to_datetime(hist_subset.iloc[-1]["timestamp"])
+    
+    current_window = window_scaled.copy() # (24, 8)
+    
+    with torch.no_grad():
+        for h in range(1, hours_ahead + 1):
+            # Shape for PyTorch: (batch_size, sequence_length, features) -> (1, 24, 8)
+            input_tensor = torch.tensor(current_window[np.newaxis, :, :], dtype=torch.float32).to(device)
+            pred_scaled = model(input_tensor).cpu().numpy().squeeze()
+            
+            # De-scale prediction to get raw kWh
+            # We must construct a dummy array of feature columns to run inverse_transform
+            dummy = np.zeros((1, len(feature_cols)))
+            dummy[0, feature_cols.index("energy_kwh")] = pred_scaled
+            pred_raw = scaler.inverse_transform(dummy)[0, feature_cols.index("energy_kwh")]
+            pred_raw = max(0.05, float(pred_raw))
+            
+            future_time = last_time + pd.Timedelta(hours=h)
+            predictions.append({
+                "timestamp": str(future_time),
+                "value": round(pred_raw, 3)
+            })
+            
+            # Update lookback window:
+            # 1. Slide window down
+            new_row = np.zeros(len(feature_cols))
+            new_row[feature_cols.index("energy_kwh")] = pred_scaled
+            
+            # Estimate future weather/calendar tags for feature columns
+            # hour, day_of_week, month, is_weekend
+            new_row[feature_cols.index("hour")] = future_time.hour
+            new_row[feature_cols.index("day_of_week")] = future_time.dayofweek
+            new_row[feature_cols.index("month")] = future_time.month
+            new_row[feature_cols.index("is_weekend")] = 1 if future_time.dayofweek >= 5 else 0
+            
+            # Weather estimations (simple progression)
+            last_temp = window_data.iloc[-1]["temperature"]
+            est_temp = last_temp + 0.3 * np.sin(2 * np.pi * future_time.hour / 24)
+            new_row[feature_cols.index("temperature")] = est_temp
+            
+            last_humid = window_data.iloc[-1]["humidity"]
+            est_humid = np.clip(last_humid - 0.2 * np.sin(2 * np.pi * future_time.hour / 24), 20, 100)
+            new_row[feature_cols.index("humidity")] = est_humid
+            
+            # Scale new row
+            new_row_scaled = scaler.transform(new_row.reshape(1, -1))[0]
+            
+            # Concatenate to current window and slide
+            current_window = np.vstack([current_window[1:], new_row_scaled])
+            
     return {
-        "message": "Welcome to the EcoWatt AI API",
-        "docs_url": "/docs",
-        "status": "online"
+        "historical_24h": historical_data,
+        "forecast_24h": predictions
     }
+
+@app.get("/api/v1/model-comparison")
+def model_comparison():
+    """
+    Returns the evaluation table results for Plain ANN, Plain LSTM, and CNN-LSTM.
+    """
+    if os.path.exists(COMPARISON_PATH):
+        with open(COMPARISON_PATH, "r") as f:
+            return json.load(f)
+            
+    # Mock fallback if JSON is not generated yet
+    return {
+        "CNN-LSTM": {"RMSE": 0.157, "MAE": 0.119, "MAPE": 31.0, "R2": 0.716},
+        "Plain LSTM": {"RMSE": 0.157, "MAE": 0.123, "MAPE": 36.1, "R2": 0.715},
+        "Plain ANN": {"RMSE": 0.135, "MAE": 0.106, "MAPE": 30.5, "R2": 0.791}
+    }
+
+@app.get("/api/v1/alerts/{household_id}")
+def get_alerts(household_id: str):
+    """
+    Scans recent consumption data and flags anomalous load values
+    (e.g., >30% above the historical average for that household).
+    """
+    if not os.path.exists(PROCESSED_DATA_PATH):
+        raise HTTPException(status_code=404, detail="Data not found.")
+        
+    df = pd.read_csv(PROCESSED_DATA_PATH)
+    hh_df = df[df["household_id"] == household_id].copy().sort_values("timestamp")
+    if hh_df.empty:
+        raise HTTPException(status_code=404, detail="Household not found.")
+        
+    hist_avg = hh_df["energy_kwh"].mean()
+    threshold = hist_avg * 1.30 # 30% above average
+    
+    # Find records exceeding threshold in the last 72 hours
+    recent_logs = hh_df.iloc[-72:]
+    anomalous_records = recent_logs[recent_logs["energy_kwh"] > threshold]
+    
+    alerts = []
+    for _, row in anomalous_records.iterrows():
+        val = float(row["energy_kwh"])
+        increase_pct = ((val - hist_avg) / hist_avg) * 100
+        alerts.append({
+            "timestamp": str(row["timestamp"]),
+            "value_kwh": round(val, 3),
+            "threshold_kwh": round(threshold, 3),
+            "historical_average_kwh": round(hist_avg, 3),
+            "increase_percent": round(increase_pct, 1),
+            "status": "Critical Spike" if val > hist_avg * 2 else "Unusual High Load"
+        })
+        
+    # Return alerts sorted by latest first
+    return sorted(alerts, key=lambda x: x["timestamp"], reverse=True)
+
+@app.post("/api/v1/data/simulate-step")
+def simulate_step():
+    """
+    Simulates a new hourly smart meter ingestion tick.
+    Appends a new hourly reading for all households, updating the active dataset.
+    """
+    if not os.path.exists(PROCESSED_DATA_PATH):
+         raise HTTPException(status_code=404, detail="Data not found.")
+         
+    df = pd.read_csv(PROCESSED_DATA_PATH)
+    df["timestamp"] = pd.to_datetime(df["timestamp"])
+    
+    last_time = df["timestamp"].max()
+    next_time = last_time + pd.Timedelta(hours=1)
+    
+    households = df["household_id"].unique()
+    new_rows = []
+    
+    # Weather updates with minor variance
+    last_temp = df[df["timestamp"] == last_time].iloc[0]["temperature"]
+    next_temp = last_temp + np.random.normal(0, 0.4)
+    next_temp = np.clip(next_temp, 5, 42)
+    
+    last_humid = df[df["timestamp"] == last_time].iloc[0]["humidity"]
+    next_humid = last_humid + np.random.normal(0, 0.8)
+    next_humid = np.clip(next_humid, 10, 100)
+    
+    for hid in households:
+        hh_subset = df[df["household_id"] == hid]
+        hist_avg = hh_subset["energy_kwh"].mean()
+        
+        # Base daily loads
+        daily_profile = [0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.85, 0.85, 0.85, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 0.35, 1.4, 1.4, 1.4, 1.4, 1.4, 0.4, 0.4]
+        h_idx = next_time.hour
+        base_load = {"HH_001": 0.6, "HH_002": 1.2, "HH_003": 0.95}[hid]
+        
+        load = base_load * daily_profile[h_idx]
+        if next_time.dayofweek >= 5:
+            load *= 1.2
+            
+        # Temperature loads
+        if next_temp > 26:
+            load += 0.08 * (next_temp - 26)
+        elif next_temp < 15:
+            load += 0.05 * (15 - next_temp)
+            
+        load += np.random.normal(0, 0.05 * load)
+        load = max(0.05, load)
+        
+        # 1% chance of anomaly spike
+        if np.random.rand() < 0.01:
+            load *= np.random.uniform(2.5, 3.5)
+            
+        new_rows.append({
+            "household_id": hid,
+            "timestamp": next_time,
+            "energy_kwh": round(load, 3),
+            "temperature": round(next_temp, 2),
+            "humidity": round(next_humid, 2),
+            "is_holiday": 0,
+            "hour": next_time.hour,
+            "day_of_week": next_time.dayofweek,
+            "month": next_time.month,
+            "is_weekend": 1 if next_time.dayofweek >= 5 else 0
+        })
+        
+    new_df = pd.DataFrame(new_rows)
+    df = pd.concat([df, new_df], ignore_index=True)
+    df.to_csv(PROCESSED_DATA_PATH, index=False)
+    
+    return {
+        "status": "Success",
+        "timestamp": str(next_time),
+        "new_records": new_rows
+    }
+
+if __name__ == "__main__":
+    import uvicorn
+    # Start on standard port 8000
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

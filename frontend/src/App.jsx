@@ -1,21 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Building } from 'lucide-react';
+import { Play } from 'lucide-react';
 
-import Forecasting    from './pages/Forecasting';
-import Anomalies      from './pages/Anomalies';
-import CarbonTracker  from './pages/CarbonTracker';
-import Optimization   from './pages/Optimization';
-import Reports        from './pages/Reports';
 import LoginPage      from './pages/LoginPage';
 import ProfilePage    from './pages/ProfilePage';
-import NationalAnalytics from './pages/NationalAnalytics'; // command-center
 
 import Header  from './components/Header';
 import Sidebar from './components/Sidebar';
 
-import { useAuth }                                                    from './context/AuthContext';
-import { useTheme }                                                   from './context/ThemeContext';
-import { consumerService, dataService, anomalyService, optimizeService } from './services/api';
+import LiveConsumptionPanel  from './components/LiveConsumptionPanel';
+import ConsumptionTrendChart from './components/ConsumptionTrendChart';
+import PredictionPanel       from './components/PredictionPanel';
+import ModelComparisonPanel  from './components/ModelComparisonPanel';
+import HouseholdSelector     from './components/HouseholdSelector';
+import AlertsPanel           from './components/AlertsPanel';
+
+import { useAuth }          from './context/AuthContext';
+import { useTheme }         from './context/ThemeContext';
+import { householdService } from './services/api';
 
 /* ─── Error Boundary ─────────────────────────────────────────────── */
 class ErrorBoundary extends React.Component {
@@ -34,87 +35,174 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-/* ─── App ─────────────────────────────────────────────────────────── */
+/* ─── App ────────────────────────────────────────────────────────── */
 function App() {
   const { currentUser, logout } = useAuth();
   const { isDarkMode } = useTheme();
   const isAuthenticated = !!currentUser;
 
   const [activePage,          setActivePage]          = useState('overview');
-  const [viewMode,            setViewMode]            = useState('national'); // Hoisted state: 'national' | 'local'
-  const [consumers,           setConsumers]           = useState([]);
-  const [selectedConsumerId,  setSelectedConsumerId]  = useState('');
-  const [activeAnomalyCount,  setActiveAnomalyCount]  = useState(0);
-  const [pendingOptCount,     setPendingOptCount]     = useState(0);
+  const [households,          setHouseholds]          = useState([]);
+  const [selectedHouseholdId, setSelectedHouseholdId] = useState('');
+  
+  const [currentData,         setCurrentData]         = useState(null);
+  const [predictionData,      setPredictionData]      = useState(null);
+  const [alertsData,          setAlertsData]          = useState([]);
+  const [comparisonData,      setComparisonData]      = useState(null);
+  
   const [isSimulating,        setIsSimulating]        = useState(false);
   const [simulationLog,       setSimulationLog]       = useState('');
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    loadConsumers();
-    loadCounts();
-    const iv = setInterval(loadCounts, 10000);
-    return () => clearInterval(iv);
-  }, [isAuthenticated, selectedConsumerId]);
+    loadHouseholds();
+    loadComparison();
+  }, [isAuthenticated]);
 
-  const loadConsumers = async () => {
+  useEffect(() => {
+    if (!isAuthenticated || !selectedHouseholdId) return;
+    loadTelemetry();
+    const interval = setInterval(loadTelemetry, 15000); // Poll loads every 15s
+    return () => clearInterval(interval);
+  }, [isAuthenticated, selectedHouseholdId]);
+
+  const loadHouseholds = async () => {
     try {
-      const data = await consumerService.getAll();
-      setConsumers(data);
-      if (data.length > 0 && !selectedConsumerId) setSelectedConsumerId(data[0].id.toString());
-    } catch (e) { console.error(e); }
+      const data = await householdService.getAll();
+      setHouseholds(data);
+      if (data.length > 0) {
+        setSelectedHouseholdId(data[0].id);
+      }
+    } catch (e) {
+      console.error("Error loading households:", e);
+    }
   };
 
-  const loadCounts = async () => {
+  const loadComparison = async () => {
     try {
-      const cid = selectedConsumerId ? parseInt(selectedConsumerId) : null;
-      const [anoms, opts] = await Promise.all([anomalyService.getAll(cid, 'Active'), optimizeService.getRecommendations(cid, 'Pending')]);
-      setActiveAnomalyCount(anoms.length);
-      setPendingOptCount(opts.length);
-    } catch (e) { console.error(e); }
+      const data = await householdService.getModelComparison();
+      setComparisonData(data);
+    } catch (e) {
+      console.error("Error loading model metrics:", e);
+    }
+  };
+
+  const loadTelemetry = async () => {
+    try {
+      const [curr, pred, alrt] = await Promise.all([
+        householdService.getCurrentConsumption(selectedHouseholdId),
+        householdService.getPrediction(selectedHouseholdId),
+        householdService.getAlerts(selectedHouseholdId)
+      ]);
+      setCurrentData(curr);
+      setPredictionData(pred);
+      setAlertsData(alrt);
+    } catch (e) {
+      console.error("Error loading household telemetry:", e);
+    }
   };
 
   const handleSimulateStep = async () => {
-    setIsSimulating(true); setSimulationLog('Simulating grid tick...');
+    setIsSimulating(true);
+    setSimulationLog('Simulating meter pulse...');
     try {
-      const res = await dataService.simulateStep();
-      setSimulationLog(`Tick: ${new Date(res.timestamp).toLocaleTimeString()} ingested.`);
-      loadCounts();
-      window.dispatchEvent(new CustomEvent('grid-tick'));
+      const res = await householdService.simulateStep();
+      setSimulationLog(`Meter tick: ${new Date(res.timestamp).toLocaleTimeString()} logged.`);
+      loadTelemetry();
       setTimeout(() => setSimulationLog(''), 4000);
-    } catch (e) { setSimulationLog('Simulation failed.'); }
-    finally { setIsSimulating(false); }
+    } catch (e) {
+      setSimulationLog('Simulation failed.');
+    } finally {
+      setIsSimulating(false);
+    }
   };
 
   const handleLogout = async () => {
-    try { await logout(); setActivePage('overview'); } catch (e) { console.error(e); }
+    try {
+      await logout();
+      setActivePage('overview');
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   if (!isAuthenticated) return <LoginPage />;
 
-  const cid = selectedConsumerId ? parseInt(selectedConsumerId) : null;
-  const activeConsumer = consumers.find(c => c.id.toString() === selectedConsumerId);
+  const renderPage = () => {
+    switch (activePage) {
+      case 'overview':
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Top Toolbar Row */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: isDarkMode ? '#131824' : '#FFFFFF',
+              border: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0'}`,
+              borderRadius: 12,
+              padding: '10px 18px',
+              flexWrap: 'wrap',
+              gap: 10
+            }}>
+              <HouseholdSelector
+                households={households}
+                selectedId={selectedHouseholdId}
+                onSelect={setSelectedHouseholdId}
+              />
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {simulationLog && (
+                  <span style={{ fontSize: 10, color: '#10B981', background: 'rgba(16,185,129,0.1)', padding: '4px 12px', borderRadius: 999, fontWeight: 700 }}>
+                    {simulationLog}
+                  </span>
+                )}
+                <button
+                  onClick={handleSimulateStep}
+                  disabled={isSimulating}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F1F5F9',
+                    border: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.1)' : '#CBD5E1'}`,
+                    borderRadius: 8,
+                    padding: '6px 14px',
+                    fontSize: 10,
+                    fontWeight: 750,
+                    color: isDarkMode ? '#cbd5e1' : '#334155',
+                    cursor: 'pointer',
+                    opacity: isSimulating ? 0.5 : 1
+                  }}
+                >
+                  <Play size={10} fill="#3B82F6" color="#3B82F6" />
+                  Simulate Smart Meter Tick
+                </button>
+              </div>
+            </div>
 
-  // Pages that use the local (per-consumer) sub-header
-  const localPages = ['forecasting', 'anomalies', 'carbon', 'optimization', 'reports'];
-  const isLocalPage = localPages.includes(activePage);
+            {/* Row 1: Live Load Telemetry Card */}
+            <LiveConsumptionPanel currentData={currentData} />
 
-  const renderPage = () => (
-    <ErrorBoundary key={activePage}>
-      {(() => {
-        switch (activePage) {
-          case 'overview':    return <NationalAnalytics />;
-          case 'forecasting': return <Forecasting consumerId={cid} activeConsumer={activeConsumer} />;
-          case 'anomalies':   return <Anomalies   consumerId={cid} activeConsumer={activeConsumer} onActionComplete={loadCounts} />;
-          case 'carbon':      return <CarbonTracker consumerId={cid} activeConsumer={activeConsumer} />;
-          case 'optimization':return <Optimization  consumerId={cid} activeConsumer={activeConsumer} onActionComplete={loadCounts} />;
-          case 'reports':     return <Reports consumerId={cid} consumers={consumers} />;
-          case 'profile':     return <ProfilePage onBackToDashboard={() => setActivePage('overview')} />;
-          default:            return <NationalAnalytics />;
-        }
-      })()}
-    </ErrorBoundary>
-  );
+            {/* Row 2: 2 Column Grid - Forecast Chart + Active Spikes */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1fr', gap: 14, alignItems: 'stretch' }}>
+              <PredictionPanel predictionData={predictionData} />
+              <AlertsPanel alerts={alertsData} />
+            </div>
+
+            {/* Row 3: Load Trend Analysis */}
+            <ConsumptionTrendChart historicalData={predictionData?.historical_24h} />
+
+          </div>
+        );
+      case 'evaluation':
+        return <ModelComparisonPanel comparisonData={comparisonData} />;
+      case 'profile':
+        return <ProfilePage onBackToDashboard={() => setActivePage('overview')} />;
+      default:
+        return <NationalAnalytics />;
+    }
+  };
 
   return (
     <div style={{
@@ -127,84 +215,25 @@ function App() {
       transition: 'background 0.2s, color 0.2s',
     }}>
 
-      {/* ── Top Header ── */}
+      {/* Top Header */}
       <Header
         onProfileClick={() => setActivePage('profile')}
-        notificationCount={activeAnomalyCount}
+        notificationCount={alertsData.filter(al => al.status === 'Critical Spike').length}
       />
 
-      {/* ── Body (sidebar + main) ── */}
+      {/* Sidebar + Main Display */}
       <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-
-        {/* Sidebar */}
         <Sidebar
           activePage={activePage}
           setActivePage={setActivePage}
-          activeAnomalyCount={activeAnomalyCount}
-          pendingOptCount={pendingOptCount}
           onLogout={handleLogout}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
         />
-
-        {/* Main content column */}
+        
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-
-          {/* Local-mode sub-header */}
-          {isLocalPage && (
-            <div style={{
-              height: 48,
-              background: isDarkMode ? '#0d1219' : '#FFFFFF',
-              borderBottom: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.05)' : '#E2E8F0'}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0 24px',
-              flexShrink: 0
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Building size={14} color="#3B82F6" />
-                <label htmlFor="cSelect" style={{ fontSize: 11, fontWeight: 700, color: isDarkMode ? '#94a3b8' : '#475569' }}>Smart Grid Node:</label>
-                <select id="cSelect" value={selectedConsumerId} onChange={e => setSelectedConsumerId(e.target.value)}
-                  style={{
-                    background: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F1F5F9',
-                    border: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.1)' : '#CBD5E1'}`,
-                    borderRadius: 8,
-                    padding: '3px 10px',
-                    fontSize: 11,
-                    color: isDarkMode ? '#e2e8f0' : '#0F172A',
-                    outline: 'none'
-                  }}>
-                  {consumers.map(c => <option key={c.id} value={c.id}>[{c.class_type}] {c.name}</option>)}
-                </select>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                {simulationLog && <span style={{ fontSize: 10, color: '#10B981', background: 'rgba(16,185,129,0.1)', padding: '3px 10px', borderRadius: 999, fontWeight: 700 }}>{simulationLog}</span>}
-                <button onClick={handleSimulateStep} disabled={isSimulating}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    background: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F1F5F9',
-                    border: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.1)' : '#CBD5E1'}`,
-                    borderRadius: 8,
-                    padding: '5px 12px',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: isDarkMode ? '#cbd5e1' : '#334155',
-                    cursor: 'pointer',
-                    opacity: isSimulating ? 0.5 : 1
-                  }}>
-                  <Play size={10} fill="#3B82F6" color="#3B82F6" />
-                  Simulate Grid Tick
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Scrollable page area */}
           <main style={{ flex: 1, overflowY: 'auto', padding: 14 }}>
-            {renderPage()}
+            <ErrorBoundary key={activePage}>
+              {renderPage()}
+            </ErrorBoundary>
           </main>
         </div>
       </div>

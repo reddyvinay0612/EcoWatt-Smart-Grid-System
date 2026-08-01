@@ -1,8 +1,7 @@
 import React from 'react';
 import {
-  LayoutDashboard, BarChart3, Leaf, BrainCircuit,
-  Wind, Network, FileText, BellRing, Settings,
-  LogOut, User as UserIcon, Globe, Map
+  LayoutDashboard, BarChart3, Settings,
+  LogOut, User as UserIcon, Globe
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -10,11 +9,7 @@ import { useTheme } from '../context/ThemeContext';
 export default function Sidebar({ 
   activePage, 
   setActivePage, 
-  activeAnomalyCount, 
-  pendingOptCount, 
-  onLogout,
-  viewMode = 'national',
-  setViewMode
+  onLogout 
 }) {
   const { currentUser } = useAuth();
   const { isDarkMode } = useTheme();
@@ -32,32 +27,11 @@ export default function Sidebar({
   const hoverBg = isDarkMode ? 'rgba(255,255,255,0.05)' : '#F1F5F9';
   const hoverText = isDarkMode ? '#F8FAFC' : '#0F172A';
 
-  // Toggle mode switcher
-  const handleModeChange = (mode) => {
-    setViewMode(mode);
-    if (mode === 'national') {
-      setActivePage('overview');
-    } else {
-      setActivePage('forecasting');
-    }
-  };
-
-  // Filtered Navigation based on mode
-  const navItems = viewMode === 'national' 
-    ? [
-        { id: 'overview', label: 'National Dashboard', Icon: LayoutDashboard },
-        { id: 'profile',  label: 'Settings',           Icon: Settings        },
-      ]
-    : [
-        { id: 'forecasting',  label: 'Energy Analytics',   Icon: BarChart3       },
-        { id: 'carbon',       label: 'Carbon Audit',       Icon: Leaf            },
-        { id: 'forecasting',  label: 'AI Predictions',     Icon: BrainCircuit    },
-        { id: 'optimization', label: 'Renewable Sources',  Icon: Wind            },
-        { id: 'optimization', label: 'Grid Status',        Icon: Network         },
-        { id: 'reports',      label: 'Reports',            Icon: FileText        },
-        { id: 'anomalies',    label: 'Alerts Center',      Icon: BellRing        },
-        { id: 'profile',      label: 'Settings',           Icon: Settings        },
-      ];
+  const navItems = [
+    { id: 'overview',   label: 'Residential Monitor', Icon: LayoutDashboard },
+    { id: 'evaluation', label: 'Model Evaluation',    Icon: BarChart3       },
+    { id: 'profile',    label: 'Settings',            Icon: Settings        },
+  ];
 
   return (
     <aside style={{
@@ -71,51 +45,23 @@ export default function Sidebar({
       transition: 'background 0.2s, border-color 0.2s',
     }}>
 
-      {/* View Mode Segmented Tab Switcher */}
-      <div style={{ padding: '12px 10px 8px 10px', borderBottom: `1px solid ${border}` }}>
-        <div style={{ display: 'flex', background: isDarkMode ? 'rgba(255,255,255,0.04)' : '#F1F5F9', padding: 2, borderRadius: 10, border: `1px solid ${border}` }}>
-          <button
-            onClick={() => handleModeChange('national')}
-            style={{
-              flex: 1,
-              padding: '6px 0',
-              border: 'none',
-              borderRadius: 8,
-              fontSize: 9,
-              fontWeight: 800,
-              cursor: 'pointer',
-              background: viewMode === 'national' ? '#3B82F6' : 'transparent',
-              color: viewMode === 'national' ? '#fff' : textInactive,
-              transition: 'all 0.15s'
-            }}
-          >
-            National
-          </button>
-          <button
-            onClick={() => handleModeChange('local')}
-            style={{
-              flex: 1,
-              padding: '6px 0',
-              border: 'none',
-              borderRadius: 8,
-              fontSize: 9,
-              fontWeight: 800,
-              cursor: 'pointer',
-              background: viewMode === 'local' ? '#3B82F6' : 'transparent',
-              color: viewMode === 'local' ? '#fff' : textInactive,
-              transition: 'all 0.15s'
-            }}
-          >
-            Telemetry
-          </button>
+      {/* Branding Header */}
+      <div style={{ padding: '16px 14px', borderBottom: `1px solid ${border}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Globe size={18} color="#3B82F6" />
+          <span style={{ fontSize: 13, fontWeight: 900, color: isDarkMode ? '#fff' : '#0F172A', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            EcoWatt AI
+          </span>
         </div>
+        <span style={{ fontSize: 8, color: textInactive, display: 'block', marginTop: 2, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Residential SEMS
+        </span>
       </div>
 
       {/* Vertical Nav */}
-      <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 8px' }}>
+      <nav style={{ flex: 1, overflowY: 'auto', padding: '12px 8px' }}>
         {navItems.map((item, idx) => {
           const active = activePage === item.id;
-          const isBell = item.id === 'anomalies' && activeAnomalyCount > 0;
           return (
             <button
               key={`${item.label}-${idx}`}
@@ -124,7 +70,6 @@ export default function Sidebar({
                 width: '100%',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between',
                 padding: '9px 10px 9px 9px',
                 borderRadius: 8,
                 marginBottom: 4,
@@ -146,46 +91,19 @@ export default function Sidebar({
                 <item.Icon size={15} />
                 <span>{item.label}</span>
               </div>
-              {isBell && (
-                <span style={{ background: 'rgba(239,68,68,0.2)', color: '#ef4444', fontSize: 8, fontWeight: 700, padding: '2px 5px', borderRadius: 999 }}>
-                  {activeAnomalyCount}
-                </span>
-              )}
             </button>
           );
         })}
       </nav>
 
-      {/* Bottom of sidebar: branding card + profile + sign-out */}
+      {/* Bottom profile and sign-out */}
       <div style={{ padding: '8px', borderTop: `1px solid ${border}` }}>
-
-        {/* Branding card */}
-        <div style={{
-          background: isDarkMode
-            ? 'linear-gradient(135deg,#0f2340 0%,#0a1a10 100%)'
-            : 'linear-gradient(135deg,#EFF6FF 0%,#F0FDF4 100%)',
-          border: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.06)' : '#DBEAFE'}`,
-          borderRadius: 10,
-          padding: '10px 12px',
-          marginBottom: 8
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
-            <div style={{ background: 'rgba(16,185,129,0.2)', borderRadius: 7, padding: 5 }}>
-              <Globe size={12} color="#10B981" />
-            </div>
-            <span style={{ fontSize: 10, fontWeight: 900, color: isDarkMode ? '#fff' : '#0F172A' }}>EcoWatt AI</span>
-          </div>
-          <p style={{ fontSize: 8, color: isDarkMode ? '#94A3B8' : '#475569', lineHeight: 1.5, margin: 0, fontWeight: 600 }}>
-            Empowering a Greener Tomorrow
-          </p>
-        </div>
-
         {/* Profile row */}
         <button onClick={() => setActivePage('profile')}
           style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', borderRadius: 8, marginBottom: 6 }}
           onMouseEnter={e => e.currentTarget.style.background = hoverBg}
           onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-          <div style={{ width: 28, height: 28, borderRadius: '50%', background: isDarkMode ? '#1e293b' : '#CBD5E1', border: `1px solid ${border}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 28, height: 28, borderRadius: '50%', background: isDarkMode ? '#1e293b' : '#CBD5E1', border: `1px solid ${border}`, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyCenter: 'center', flexShrink: 0 }}>
             {avatar ? <img src={avatar} alt="av" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <UserIcon size={13} color={isDarkMode ? '#94a3b8' : '#475569'} />}
           </div>
           <div style={{ textAlign: 'left', minWidth: 0, flex: 1 }}>

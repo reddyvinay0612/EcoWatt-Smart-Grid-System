@@ -67,10 +67,10 @@ export default function Header({ onProfileClick, notificationCount = 0 }) {
         </div>
         <div>
           <div style={{ fontSize: 11, fontWeight: 900, color: titleColor, letterSpacing: '0.12em', textTransform: 'uppercase', lineHeight: 1 }}>
-            ECOWATT AI NATIONAL ANALYTICS CENTER
+            ECOWATT AI RESIDENTIAL MONITORING CENTER
           </div>
           <div style={{ fontSize: 9, color: subtitleColor, marginTop: 2, fontWeight: 600 }}>
-            Powering India's Sustainable Future
+            Powering Sustainable Smart Homes
           </div>
         </div>
       </div>
