@@ -1,21 +1,21 @@
 import React from 'react';
-import { AlertOctagon, CheckCircle2, ShieldCheck, ZapOff } from 'lucide-react';
+import { AlertOctagon, ShieldCheck, ZapOff } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import GlowCard from './GlowCard';
 
 export default function AlertsPanel({ alerts = [] }) {
   const { isDarkMode } = useTheme();
 
-  const cardBg = isDarkMode ? '#131824' : '#FFFFFF';
-  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
   const titleColor = isDarkMode ? '#FFFFFF' : '#0F172A';
   const labelColor = isDarkMode ? '#94A3B8' : '#475569';
   const textColor = isDarkMode ? '#cbd5e1' : '#334155';
+  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
 
   return (
-    <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, padding: '12px 14px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <GlowCard glowColor="red" customSize={true} className="w-full flex flex-col gap-4">
       
       {/* Title */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <AlertOctagon size={16} color="#EF4444" />
           <span style={{ fontSize: 11, fontWeight: 900, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
@@ -70,6 +70,6 @@ export default function AlertsPanel({ alerts = [] }) {
         )}
       </div>
 
-    </div>
+    </GlowCard>
   );
 }

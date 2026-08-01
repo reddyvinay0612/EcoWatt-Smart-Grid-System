@@ -2,16 +2,16 @@ import React, { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { BarChart3 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import GlowCard from './GlowCard';
 
 export default function ModelComparisonPanel({ comparisonData }) {
   const { isDarkMode } = useTheme();
   const [activeMetric, setActiveMetric] = useState('MAE'); // 'MAE' | 'RMSE' | 'MAPE' | 'R2'
 
-  const cardBg = isDarkMode ? '#131824' : '#FFFFFF';
-  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
   const titleColor = isDarkMode ? '#FFFFFF' : '#0F172A';
   const labelColor = isDarkMode ? '#94A3B8' : '#475569';
   const valueColor = isDarkMode ? '#E2E8F0' : '#0F172A';
+  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
 
   const defaultData = {
     "CNN-LSTM": { "RMSE": 0.157, "MAE": 0.119, "MAPE": 31.0, "R2": 0.716 },
@@ -29,7 +29,7 @@ export default function ModelComparisonPanel({ comparisonData }) {
   ];
 
   return (
-    <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <GlowCard glowColor="purple" customSize={true} className="w-full flex flex-col gap-4">
       
       {/* Title & Metric selector */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
@@ -101,7 +101,7 @@ export default function ModelComparisonPanel({ comparisonData }) {
               <YAxis stroke="#64748B" fontSize={8} tickLine={false} axisLine={false} />
               <Tooltip 
                 contentStyle={{ 
-                  backgroundColor: cardBg, 
+                  backgroundColor: isDarkMode ? '#0f172a' : '#ffffff', 
                   borderColor: cardBorder, 
                   borderRadius: '8px',
                   fontSize: '9px',
@@ -119,6 +119,6 @@ export default function ModelComparisonPanel({ comparisonData }) {
 
       </div>
 
-    </div>
+    </GlowCard>
   );
 }

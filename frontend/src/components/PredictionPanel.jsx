@@ -2,14 +2,14 @@ import React, { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Sparkles } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import GlowCard from './GlowCard';
 
 export default function PredictionPanel({ predictionData }) {
   const { isDarkMode } = useTheme();
 
-  const cardBg = isDarkMode ? '#131824' : '#FFFFFF';
-  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
   const titleColor = isDarkMode ? '#FFFFFF' : '#0F172A';
   const labelColor = isDarkMode ? '#94A3B8' : '#475569';
+  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
 
   const chartData = useMemo(() => {
     if (!predictionData) return [];
@@ -53,10 +53,10 @@ export default function PredictionPanel({ predictionData }) {
   }, [predictionData]);
 
   return (
-    <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, padding: '12px 14px', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+    <GlowCard glowColor="purple" customSize={true} className="w-full flex flex-col gap-4">
       
       {/* Title */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Sparkles size={16} color="#7C3AED" />
           <span style={{ fontSize: 11, fontWeight: 900, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
@@ -82,7 +82,7 @@ export default function PredictionPanel({ predictionData }) {
               <YAxis stroke="#64748B" fontSize={8} tickLine={false} axisLine={false} />
               <Tooltip 
                 contentStyle={{ 
-                  backgroundColor: cardBg, 
+                  backgroundColor: isDarkMode ? '#0f172a' : '#ffffff', 
                   borderColor: cardBorder, 
                   borderRadius: '8px',
                   fontSize: '9px',
@@ -114,6 +114,6 @@ export default function PredictionPanel({ predictionData }) {
         )}
       </div>
 
-    </div>
+    </GlowCard>
   );
 }

@@ -23,6 +23,7 @@ import AiInsightsPanel       from '../components/AiInsightsPanel';
 import EnergySourceRings     from '../components/EnergySourceRings';
 import CarbonSavingsPanel    from '../components/CarbonSavingsPanel';
 import ForecastBarChart      from '../components/ForecastBarChart';
+import GlowCard              from '../components/GlowCard';
 
 // ── Data & utils ───────────────────────────────────────────────────
 import { stateData, NATIONAL_AVG, NATIONAL_CARBON_AVG } from '../data/stateData';
@@ -190,7 +191,7 @@ export default function NationalAnalytics() {
             </div>
           </div>
 
-          <div className="map-export" style={{ height: 490 }}>
+          <GlowCard glowColor="blue" customSize={true} className="map-export h-[490px] p-0 overflow-hidden">
             <LiveNationalMap 
               selectedState={selectedState} 
               onSelectState={handleSelectState} 
@@ -198,45 +199,57 @@ export default function NationalAnalytics() {
               activeMetric={activeMetric}
               setActiveMetric={setActiveMetric}
             />
-          </div>
+          </GlowCard>
 
           <SelectedStateBar selectedState={selectedState} />
         </div>
 
         {/* Col 2: Tiers Donut + Trend Chart */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <ConsumptionTiersDonut activeMetric={activeMetric} />
-          <ConsumptionTrendChart />
+          <GlowCard glowColor="orange" customSize={true} className="p-0">
+            <ConsumptionTiersDonut activeMetric={activeMetric} />
+          </GlowCard>
+          <GlowCard glowColor="green" customSize={true} className="p-0">
+            <ConsumptionTrendChart />
+          </GlowCard>
         </div>
 
         {/* Col 3: AI Insights */}
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <GlowCard glowColor="purple" customSize={true} className="h-full p-0">
           <AiInsightsPanel />
-        </div>
+        </GlowCard>
 
       </div>
 
       {/* Row 3 — Bottom 3 Panels */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-        <EnergySourceRings />
-        <CarbonSavingsPanel />
-        <ForecastBarChart />
+        <GlowCard glowColor="orange" customSize={true} className="p-0">
+          <EnergySourceRings />
+        </GlowCard>
+        <GlowCard glowColor="green" customSize={true} className="p-0">
+          <CarbonSavingsPanel />
+        </GlowCard>
+        <GlowCard glowColor="blue" customSize={true} className="p-0">
+          <ForecastBarChart />
+        </GlowCard>
       </div>
 
       {/* Row 4 — Bottom Full-Width Comparison Chart */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
-        <ComparisonChart
-          items={dataset}
-          compareA={compareA}
-          setCompareA={setCompareA}
-          compareB={compareB}
-          setCompareB={setCompareB}
-          averageValueElec={NATIONAL_AVG}
-          averageValueCarbon={NATIONAL_CARBON_AVG}
-          averageLabel="National Average"
-          isDarkMode={isDarkMode}
-          height={260}
-        />
+        <GlowCard glowColor="blue" customSize={true} className="w-full p-0">
+          <ComparisonChart
+            items={dataset}
+            compareA={compareA}
+            setCompareA={setCompareA}
+            compareB={compareB}
+            setCompareB={setCompareB}
+            averageValueElec={NATIONAL_AVG}
+            averageValueCarbon={NATIONAL_CARBON_AVG}
+            averageLabel="National Average"
+            isDarkMode={isDarkMode}
+            height={260}
+          />
+        </GlowCard>
       </div>
 
     </div>
@@ -276,7 +289,7 @@ export default function NationalAnalytics() {
 
         {/* State map + detail panel */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 14 }}>
-          <div className="map-export" style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, overflow: 'hidden', minHeight: 480 }}>
+          <GlowCard glowColor="blue" customSize={true} className="map-export min-h-[480px] p-0">
             <StateMap
               selectedState={selectedState}
               districts={dataset}
@@ -291,32 +304,34 @@ export default function NationalAnalytics() {
               }
               activeMetric={activeMetric}
             />
-          </div>
+          </GlowCard>
           {detailItem ? (
-            <DetailPanel
-              {...detailItem}
-              parentState={detailItem.isState ? null : selectedState}
-              averageLabel={detailItem.isState ? 'National Avg' : 'State Avg'}
-              activeMetric={activeMetric}
-              isDarkMode={isDarkMode}
-              onClose={() => setSelectedDist(null)}
-            />
+            <GlowCard glowColor="purple" customSize={true} className="p-0">
+              <DetailPanel
+                {...detailItem}
+                parentState={detailItem.isState ? null : selectedState}
+                averageLabel={detailItem.isState ? 'National Avg' : 'State Avg'}
+                activeMetric={activeMetric}
+                isDarkMode={isDarkMode}
+                onClose={() => setSelectedDist(null)}
+              />
+            </GlowCard>
           ) : (
-            <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: labelColor }}>
-              <span style={{ fontSize: 12, fontWeight: 700 }}>Select a district on the map or from the list to view detailed audit</span>
-            </div>
+            <GlowCard glowColor="blue" customSize={true} className="p-6 flex flex-col items-center justify-center text-center">
+              <span style={{ fontSize: 12, fontWeight: 700, color: labelColor }}>Select a district on the map or from the list to view detailed audit</span>
+            </GlowCard>
           )}
         </div>
 
         {/* District Rankings + Comparison */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, padding: 16 }}>
+          <GlowCard glowColor="orange" customSize={true} className="p-4">
             <div style={{ fontSize: 10, fontWeight: 900, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>
               District Rankings — {selectedState}
             </div>
             <RankingTable data={dataset} onSelect={d => setSelectedDist(typeof d === 'object' ? d.name : d)} metric={activeMetric} type="needy" isDarkMode={isDarkMode} />
-          </div>
-          <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, padding: 16 }}>
+          </GlowCard>
+          <GlowCard glowColor="blue" customSize={true} className="p-0">
             <ComparisonChart
               items={dataset}
               compareA={compareA}
@@ -328,7 +343,7 @@ export default function NationalAnalytics() {
               averageLabel="State Average"
               isDarkMode={isDarkMode}
             />
-          </div>
+          </GlowCard>
         </div>
 
       </motion.div>

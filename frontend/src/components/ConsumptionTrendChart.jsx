@@ -2,18 +2,18 @@ import React, { useState, useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { CalendarRange, ChevronDown } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import GlowCard from './GlowCard';
 
 export default function ConsumptionTrendChart({ historicalData = [] }) {
   const { isDarkMode } = useTheme();
   const [range, setRange] = useState('Day');
 
-  const cardBg = isDarkMode ? '#131824' : '#FFFFFF';
-  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
   const titleColor = isDarkMode ? '#FFFFFF' : '#0F172A';
   const labelColor = isDarkMode ? '#94A3B8' : '#475569';
   const selectBg = isDarkMode ? 'rgba(255,255,255,0.06)' : '#F1F5F9';
   const selectBorder = isDarkMode ? 'rgba(255,255,255,0.1)' : '#CBD5E1';
   const selectText = isDarkMode ? '#CBD5E1' : '#0F172A';
+  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
 
   // Compute dataset based on selected range
   const chartData = useMemo(() => {
@@ -25,25 +25,23 @@ export default function ConsumptionTrendChart({ historicalData = [] }) {
         Load: d.value
       }));
     } else if (range === 'Week') {
-      // Simulate weekly curve based on historical 24h, repeat 7 times with daily variance
       const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
       return days.map((day, idx) => {
         const val = historicalData.reduce((acc, curr) => acc + curr.value, 0) / (historicalData.length || 1);
-        const dayFactor = idx >= 5 ? 1.25 : 0.95; // higher weekend loads
+        const dayFactor = idx >= 5 ? 1.25 : 0.95;
         return {
           time: day,
-          Load: round(val * 24 * dayFactor, 2) // daily total kWh
+          Load: round(val * 24 * dayFactor, 2)
         };
       });
     } else {
-      // Month
       const weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
       return weeks.map((week, idx) => {
         const val = historicalData.reduce((acc, curr) => acc + curr.value, 0) / (historicalData.length || 1);
         const weekFactor = 1.0 + Math.sin(idx * 1.5) * 0.1;
         return {
           time: week,
-          Load: round(val * 24 * 7 * weekFactor, 1) // weekly total kWh
+          Load: round(val * 24 * 7 * weekFactor, 1)
         };
       });
     }
@@ -55,10 +53,10 @@ export default function ConsumptionTrendChart({ historicalData = [] }) {
   }
 
   return (
-    <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, padding: '12px 14px', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+    <GlowCard glowColor="green" customSize={true} className="w-full flex flex-col gap-4">
       
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <CalendarRange size={16} color="#10B981" />
           <span style={{ fontSize: 11, fontWeight: 900, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
@@ -112,7 +110,7 @@ export default function ConsumptionTrendChart({ historicalData = [] }) {
               <YAxis stroke="#64748B" fontSize={8} tickLine={false} axisLine={false} />
               <Tooltip 
                 contentStyle={{ 
-                  backgroundColor: cardBg, 
+                  backgroundColor: isDarkMode ? '#0f172a' : '#ffffff', 
                   borderColor: cardBorder, 
                   borderRadius: '8px',
                   fontSize: '9px',
@@ -133,6 +131,6 @@ export default function ConsumptionTrendChart({ historicalData = [] }) {
         )}
       </div>
 
-    </div>
+    </GlowCard>
   );
 }
