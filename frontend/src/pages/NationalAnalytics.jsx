@@ -14,7 +14,6 @@ import ComparisonChart from '../components/ComparisonChart';
 import FilterButtons   from '../components/FilterButtons';
 
 // ── Command-center panels ───────────────────────────────────────────
-import KpiCardsRow           from '../components/KpiCardsRow';
 import LiveNationalMap       from '../components/LiveNationalMap';
 import SelectedStateBar      from '../components/SelectedStateBar';
 import ConsumptionTiersDonut from '../components/ConsumptionTiersDonut';
@@ -159,9 +158,6 @@ export default function NationalAnalytics() {
   ══════════════════════════════════════════════════════════════════ */
   if (view === 'india') return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-      {/* Row 1 — KPI Summary Cards */}
-      <KpiCardsRow />
 
       {/* Row 2 — Main 3-Column Section */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 240px 240px', gap: 14, alignItems: 'stretch' }}>
