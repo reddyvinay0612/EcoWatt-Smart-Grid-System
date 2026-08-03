@@ -23,7 +23,6 @@ import AiInsightsPanel       from '../components/AiInsightsPanel';
 import EnergySourceRings     from '../components/EnergySourceRings';
 import CarbonSavingsPanel    from '../components/CarbonSavingsPanel';
 import ForecastBarChart      from '../components/ForecastBarChart';
-import GlowCard              from '../components/GlowCard';
 
 // ── Data & utils ───────────────────────────────────────────────────
 import { stateData, NATIONAL_AVG, NATIONAL_CARBON_AVG } from '../data/stateData';
@@ -169,7 +168,7 @@ export default function NationalAnalytics() {
 
         {/* Col 1: Map Toolbar + Live Map + Selected State Bar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifycontent: 'space-between', gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <FilterButtons tierFilter={tierFilter} onFilterChange={setTierFilter} isDarkMode={isDarkMode} />
               
@@ -191,7 +190,7 @@ export default function NationalAnalytics() {
             </div>
           </div>
 
-          <GlowCard glowColor="blue" customSize={true} className="map-export h-[490px] p-0 overflow-hidden">
+          <div className="map-export" style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, overflow: 'hidden', height: 490 }}>
             <LiveNationalMap 
               selectedState={selectedState} 
               onSelectState={handleSelectState} 
@@ -199,44 +198,44 @@ export default function NationalAnalytics() {
               activeMetric={activeMetric}
               setActiveMetric={setActiveMetric}
             />
-          </GlowCard>
+          </div>
 
           <SelectedStateBar selectedState={selectedState} />
         </div>
 
         {/* Col 2: Tiers Donut + Trend Chart */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <GlowCard glowColor="orange" customSize={true} className="p-0">
+          <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, overflow: 'hidden' }}>
             <ConsumptionTiersDonut activeMetric={activeMetric} />
-          </GlowCard>
-          <GlowCard glowColor="green" customSize={true} className="p-0">
+          </div>
+          <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, overflow: 'hidden' }}>
             <ConsumptionTrendChart />
-          </GlowCard>
+          </div>
         </div>
 
         {/* Col 3: AI Insights */}
-        <GlowCard glowColor="purple" customSize={true} className="h-full p-0">
+        <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, overflow: 'hidden' }}>
           <AiInsightsPanel />
-        </GlowCard>
+        </div>
 
       </div>
 
       {/* Row 3 — Bottom 3 Panels */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-        <GlowCard glowColor="orange" customSize={true} className="p-0">
+        <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, overflow: 'hidden' }}>
           <EnergySourceRings />
-        </GlowCard>
-        <GlowCard glowColor="green" customSize={true} className="p-0">
+        </div>
+        <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, overflow: 'hidden' }}>
           <CarbonSavingsPanel />
-        </GlowCard>
-        <GlowCard glowColor="blue" customSize={true} className="p-0">
+        </div>
+        <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, overflow: 'hidden' }}>
           <ForecastBarChart />
-        </GlowCard>
+        </div>
       </div>
 
       {/* Row 4 — Bottom Full-Width Comparison Chart */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
-        <GlowCard glowColor="blue" customSize={true} className="w-full p-0">
+        <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, padding: 16 }}>
           <ComparisonChart
             items={dataset}
             compareA={compareA}
@@ -249,7 +248,7 @@ export default function NationalAnalytics() {
             isDarkMode={isDarkMode}
             height={260}
           />
-        </GlowCard>
+        </div>
       </div>
 
     </div>
@@ -263,7 +262,7 @@ export default function NationalAnalytics() {
       <motion.div key="sv" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
         {/* Toolbar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifycontent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <button onClick={() => handleNav('india')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: buttonBg, border: `1px solid ${buttonBorder}`, borderRadius: 8, padding: '5px 12px', fontSize: 10, fontWeight: 700, color: labelColor, cursor: 'pointer' }}>
               <ArrowLeft size={13} /> National Map
@@ -289,7 +288,7 @@ export default function NationalAnalytics() {
 
         {/* State map + detail panel */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 14 }}>
-          <GlowCard glowColor="blue" customSize={true} className="map-export min-h-[480px] p-0">
+          <div className="map-export" style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, overflow: 'hidden', minHeight: 480 }}>
             <StateMap
               selectedState={selectedState}
               districts={dataset}
@@ -304,9 +303,9 @@ export default function NationalAnalytics() {
               }
               activeMetric={activeMetric}
             />
-          </GlowCard>
+          </div>
           {detailItem ? (
-            <GlowCard glowColor="purple" customSize={true} className="p-0">
+            <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, overflow: 'hidden' }}>
               <DetailPanel
                 {...detailItem}
                 parentState={detailItem.isState ? null : selectedState}
@@ -315,23 +314,23 @@ export default function NationalAnalytics() {
                 isDarkMode={isDarkMode}
                 onClose={() => setSelectedDist(null)}
               />
-            </GlowCard>
+            </div>
           ) : (
-            <GlowCard glowColor="blue" customSize={true} className="p-6 flex flex-col items-center justify-center text-center">
-              <span style={{ fontSize: 12, fontWeight: 700, color: labelColor }}>Select a district on the map or from the list to view detailed audit</span>
-            </GlowCard>
+            <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifycontent: 'center', textAlign: 'center', color: labelColor }}>
+              <span style={{ fontSize: 12, fontWeight: 700 }}>Select a district on the map or from the list to view detailed audit</span>
+            </div>
           )}
         </div>
 
         {/* District Rankings + Comparison */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          <GlowCard glowColor="orange" customSize={true} className="p-4">
+          <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, padding: 16 }}>
             <div style={{ fontSize: 10, fontWeight: 900, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>
               District Rankings — {selectedState}
             </div>
             <RankingTable data={dataset} onSelect={d => setSelectedDist(typeof d === 'object' ? d.name : d)} metric={activeMetric} type="needy" isDarkMode={isDarkMode} />
-          </GlowCard>
-          <GlowCard glowColor="blue" customSize={true} className="p-0">
+          </div>
+          <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, padding: 16 }}>
             <ComparisonChart
               items={dataset}
               compareA={compareA}
@@ -343,7 +342,7 @@ export default function NationalAnalytics() {
               averageLabel="State Average"
               isDarkMode={isDarkMode}
             />
-          </GlowCard>
+          </div>
         </div>
 
       </motion.div>

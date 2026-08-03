@@ -2,14 +2,14 @@ import React, { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Sparkles } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import GlowCard from './GlowCard';
 
 export default function PredictionPanel({ predictionData, stateName, activeMetric }) {
   const { isDarkMode } = useTheme();
 
+  const cardBg = isDarkMode ? '#131824' : '#FFFFFF';
+  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
   const titleColor = isDarkMode ? '#FFFFFF' : '#0F172A';
   const labelColor = isDarkMode ? '#94A3B8' : '#475569';
-  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
 
   const chartData = useMemo(() => {
     // 1. If predictionData is passed, use it (household mode)
@@ -60,7 +60,6 @@ export default function PredictionPanel({ predictionData, stateName, activeMetri
       for (let i = 24; i >= 0; i--) {
         const time = new Date(now.getTime() - i * 60 * 60 * 1000);
         const hour = time.getHours();
-        // diurnal profile peaks morning & evening
         const ratio = 0.5 + Math.sin(2 * Math.PI * (hour - 6) / 24) * 0.2 + Math.sin(2 * Math.PI * (hour - 17) / 12) * 0.15;
         const val = baseLoad * ratio + Math.sin(i * 1.5) * 50;
         
@@ -93,10 +92,10 @@ export default function PredictionPanel({ predictionData, stateName, activeMetri
   const showLoader = !predictionData && !stateName;
 
   return (
-    <GlowCard glowColor="purple" customSize={true} className="w-full flex flex-col gap-4">
+    <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, padding: '12px 14px', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       
       {/* Title */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2, flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Sparkles size={16} color="#7C3AED" />
           <span style={{ fontSize: 11, fontWeight: 900, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
@@ -111,7 +110,7 @@ export default function PredictionPanel({ predictionData, stateName, activeMetri
       {/* Chart */}
       <div style={{ width: '100%', height: 180 }}>
         {showLoader ? (
-          <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyCenter: 'center', color: labelColor, fontSize: 10 }}>
+          <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: labelColor, fontSize: 10 }}>
             Loading prediction sequence...
           </div>
         ) : (
@@ -122,7 +121,7 @@ export default function PredictionPanel({ predictionData, stateName, activeMetri
               <YAxis stroke="#64748B" fontSize={8} tickLine={false} axisLine={false} />
               <Tooltip 
                 contentStyle={{ 
-                  backgroundColor: isDarkMode ? '#0f172a' : '#ffffff', 
+                  backgroundColor: cardBg, 
                   borderColor: cardBorder, 
                   borderRadius: '8px',
                   fontSize: '9px',
@@ -154,6 +153,6 @@ export default function PredictionPanel({ predictionData, stateName, activeMetri
         )}
       </div>
 
-    </GlowCard>
+    </div>
   );
 }

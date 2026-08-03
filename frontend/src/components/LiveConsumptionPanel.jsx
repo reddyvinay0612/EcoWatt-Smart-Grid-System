@@ -1,21 +1,21 @@
 import React from 'react';
 import { Activity, ShieldAlert, CheckCircle, HelpCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import GlowCard from './GlowCard';
 
 export default function LiveConsumptionPanel({ currentData }) {
   const { isDarkMode } = useTheme();
 
+  const cardBg = isDarkMode ? '#131824' : '#FFFFFF';
+  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
   const titleColor = isDarkMode ? '#FFFFFF' : '#0F172A';
   const labelColor = isDarkMode ? '#94A3B8' : '#475569';
   const valueColor = isDarkMode ? '#E2E8F0' : '#0F172A';
-  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
 
   if (!currentData) {
     return (
-      <GlowCard glowColor="blue" customSize={true} className="w-full p-6 text-center">
-        <span style={{ color: labelColor, fontSize: 12 }}>Loading current consumption telemetry...</span>
-      </GlowCard>
+      <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, padding: 24, textAlign: 'center', color: labelColor }}>
+        Loading current consumption telemetry...
+      </div>
     );
   }
 
@@ -43,7 +43,7 @@ export default function LiveConsumptionPanel({ currentData }) {
   const tierMeta = getTierDetails(tier);
 
   return (
-    <GlowCard glowColor="blue" customSize={true} className="w-full flex flex-col gap-4">
+    <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
       
       {/* Title */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -120,6 +120,6 @@ export default function LiveConsumptionPanel({ currentData }) {
 
       </div>
 
-    </GlowCard>
+    </div>
   );
 }
