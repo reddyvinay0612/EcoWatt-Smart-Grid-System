@@ -11,6 +11,7 @@ export default function ConsumptionTrendChart({ historicalData = [] }) {
   const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
   const titleColor = isDarkMode ? '#FFFFFF' : '#0F172A';
   const labelColor = isDarkMode ? '#94A3B8' : '#475569';
+  const valueColor = isDarkMode ? '#E2E8F0' : '#0F172A';
   const selectBg = isDarkMode ? 'rgba(255,255,255,0.06)' : '#F1F5F9';
   const selectBorder = isDarkMode ? 'rgba(255,255,255,0.1)' : '#CBD5E1';
   const selectText = isDarkMode ? '#CBD5E1' : '#0F172A';
@@ -113,9 +114,10 @@ export default function ConsumptionTrendChart({ historicalData = [] }) {
                   backgroundColor: cardBg, 
                   borderColor: cardBorder, 
                   borderRadius: '8px',
-                  fontSize: '9px',
-                  color: titleColor
+                  fontSize: '9px'
                 }}
+                itemStyle={{ color: valueColor, fontWeight: 700 }}
+                labelStyle={{ color: titleColor, fontWeight: 800 }}
               />
               <Area 
                 name="Load" 

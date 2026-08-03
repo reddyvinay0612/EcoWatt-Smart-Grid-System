@@ -104,9 +104,10 @@ export default function ModelComparisonPanel({ comparisonData }) {
                   backgroundColor: cardBg, 
                   borderColor: cardBorder, 
                   borderRadius: '8px',
-                  fontSize: '9px',
-                  color: titleColor
+                  fontSize: '9px'
                 }}
+                itemStyle={{ color: valueColor, fontWeight: 700 }}
+                labelStyle={{ color: titleColor, fontWeight: 800 }}
               />
               <Bar name={activeMetric === 'R2' ? 'R² Score' : activeMetric} dataKey="Value" radius={[4, 4, 0, 0]} maxBarSize={28}>
                 {chartData.map((entry, index) => (

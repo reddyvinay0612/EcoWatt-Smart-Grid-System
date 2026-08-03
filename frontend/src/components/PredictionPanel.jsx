@@ -10,6 +10,7 @@ export default function PredictionPanel({ predictionData, stateName, activeMetri
   const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
   const titleColor = isDarkMode ? '#FFFFFF' : '#0F172A';
   const labelColor = isDarkMode ? '#94A3B8' : '#475569';
+  const valueColor = isDarkMode ? '#E2E8F0' : '#0F172A';
 
   const chartData = useMemo(() => {
     // 1. If predictionData is passed, use it (household mode)
@@ -124,9 +125,10 @@ export default function PredictionPanel({ predictionData, stateName, activeMetri
                   backgroundColor: cardBg, 
                   borderColor: cardBorder, 
                   borderRadius: '8px',
-                  fontSize: '9px',
-                  color: titleColor
+                  fontSize: '9px'
                 }}
+                itemStyle={{ color: valueColor, fontWeight: 700 }}
+                labelStyle={{ color: titleColor, fontWeight: 800 }}
               />
               <Legend wrapperStyle={{ fontSize: '9px', fontWeight: '700' }} iconSize={8} />
               <Line 

@@ -159,9 +159,10 @@ export default function MonthlyUsageHistory({ selectedHouseholdId }) {
                     backgroundColor: cardBg,
                     borderColor: cardBorder,
                     borderRadius: '8px',
-                    fontSize: '9px',
-                    color: titleColor
+                    fontSize: '9px'
                   }}
+                  itemStyle={{ color: valueColor, fontWeight: 700 }}
+                  labelStyle={{ color: titleColor, fontWeight: 800 }}
                 />
                 
                 {/* Horizontal Baseline Avg Line */}
