@@ -6,9 +6,11 @@ import torch
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sklearn.preprocessing import MinMaxScaler
+from apscheduler.schedulers.background import BackgroundScheduler
 
 from data_pipeline import create_sequences, preprocess_pipeline
 from model import CnnLstmModel, load_pytorch_model, device
+from app.alert_service import send_email_alert, send_sms_alert, create_in_app_notification
 
 app = FastAPI(title="EcoWatt AI - Residential Energy Monitoring & Forecasting API")
 
@@ -30,6 +32,121 @@ MODEL_PATH = "backend/models/cnn_lstm_model.pth"
 model = None
 feature_cols = ["energy_kwh", "temperature", "humidity", "hour", "day_of_week", "month", "is_weekend", "is_holiday"]
 scaler = MinMaxScaler()
+
+MONTHLY_USAGE_PATH = "backend/data/monthly_usage.json"
+USER_SETTINGS_PATH = "backend/data/user_settings.json"
+NOTIFICATIONS_PATH = "backend/data/notifications.json"
+
+def get_household_readings(household_id: str):
+    if not os.path.exists(MONTHLY_USAGE_PATH):
+        return []
+    with open(MONTHLY_USAGE_PATH, "r") as f:
+        data = json.load(f)
+    return data.get(household_id, [])
+
+def save_household_readings(household_id: str, readings):
+    if not os.path.exists(MONTHLY_USAGE_PATH):
+        data = {}
+    else:
+        with open(MONTHLY_USAGE_PATH, "r") as f:
+            data = json.load(f)
+    data[household_id] = readings
+    with open(MONTHLY_USAGE_PATH, "w") as f:
+        json.dump(data, f, indent=2)
+
+def get_user_settings(household_id: str):
+    if not os.path.exists(USER_SETTINGS_PATH):
+        return {
+            "email_alerts": True,
+            "sms_alerts": False,
+            "threshold_percent": 20,
+            "email": f"alerts_{household_id}@example.com",
+            "phone": "+919876543210"
+        }
+    with open(USER_SETTINGS_PATH, "r") as f:
+        data = json.load(f)
+    return data.get(household_id, {
+        "email_alerts": True,
+        "sms_alerts": False,
+        "threshold_percent": 20,
+        "email": f"alerts_{household_id}@example.com",
+        "phone": "+919876543210"
+    })
+
+def save_user_settings(household_id: str, settings):
+    if not os.path.exists(USER_SETTINGS_PATH):
+        data = {}
+    else:
+        with open(USER_SETTINGS_PATH, "r") as f:
+            data = json.load(f)
+    data[household_id] = settings
+    with open(USER_SETTINGS_PATH, "w") as f:
+        json.dump(data, f, indent=2)
+
+def detect_anomaly(readings, threshold_percent=20):
+    if len(readings) < 4:
+        return {"isAnomaly": False, "reason": "Not enough historical data"}
+    
+    current_month = readings[-1]
+    baseline_months = readings[-7:-1] if len(readings) >= 7 else readings[:-1]
+    baseline_avg = sum(baseline_months) / len(baseline_months)
+    
+    percent_change = ((current_month - baseline_avg) / baseline_avg) * 100
+    is_anomaly = percent_change > threshold_percent
+    
+    return {
+        "isAnomaly": is_anomaly,
+        "currentMonth": current_month,
+        "baselineAvg": round(baseline_avg, 2),
+        "percentChange": round(percent_change, 2),
+        "threshold": threshold_percent
+    }
+
+def run_anomaly_check(household_id: str):
+    readings = get_household_readings(household_id)
+    if not readings:
+        return {"isAnomaly": False, "reason": "No readings found for household."}
+    
+    settings = get_user_settings(household_id)
+    threshold = settings.get("threshold_percent", 20)
+    
+    units_list = [r["units"] for r in readings]
+    result = detect_anomaly(units_list, threshold_percent=threshold)
+    
+    if result.get("isAnomaly"):
+        if settings.get("email_alerts", True):
+            send_email_alert(
+                settings.get("email"),
+                f"Greenwood Household {household_id}",
+                result["currentMonth"],
+                result["baselineAvg"],
+                result["percentChange"]
+            )
+        if settings.get("sms_alerts", False):
+            send_sms_alert(
+                settings.get("phone"),
+                f"Greenwood Household {household_id}",
+                result["currentMonth"],
+                result["percentChange"]
+            )
+        create_in_app_notification(household_id, result)
+        
+    return result
+
+def scheduled_monthly_check():
+    if os.path.exists(PROCESSED_DATA_PATH):
+        try:
+            df = pd.read_csv(PROCESSED_DATA_PATH)
+            households = df["household_id"].unique().tolist()
+            for hid in households:
+                try:
+                    run_anomaly_check(hid)
+                except Exception as e:
+                    print(f"Scheduled check failed for {hid}: {e}")
+        except Exception as e:
+            print(f"Scheduled scan error: {e}")
+
+scheduler = BackgroundScheduler()
 
 @app.on_event("startup")
 def startup_event():
@@ -53,6 +170,11 @@ def startup_event():
             print(f"Error loading model weights: {e}")
     else:
         print("Warning: CNN-LSTM model file not found. Run training script first.")
+
+    # Register and start monthly scheduled checks
+    scheduler.add_job(scheduled_monthly_check, 'cron', day=1, hour=0, minute=0)
+    scheduler.start()
+    print("APScheduler started successfully for monthly anomaly checks.")
 
 @app.get("/api/v1/households")
 def get_households():
@@ -344,6 +466,125 @@ def simulate_step():
         "timestamp": str(next_time),
         "new_records": new_rows
     }
+
+@app.post("/api/v1/check-anomaly/{household_id}")
+def check_anomaly(household_id: str):
+    """
+    Triggers an anomaly detection check and dispatches SMTP/SMS alerts if anomalous.
+    """
+    return run_anomaly_check(household_id)
+
+@app.get("/api/v1/monthly-usage/{household_id}")
+def monthly_usage(household_id: str):
+    """
+    Returns monthly usage readings for the selected household.
+    """
+    return get_household_readings(household_id)
+
+@app.post("/api/v1/monthly-usage/{household_id}")
+def add_monthly_reading(household_id: str, month: str, units: int):
+    """
+    Adds a new monthly consumption reading and runs anomaly checks.
+    """
+    readings = get_household_readings(household_id)
+    
+    # Check if reading for this month already exists
+    existing = next((r for r in readings if r["month"] == month), None)
+    if existing:
+        existing["units"] = units
+    else:
+        readings.append({
+            "month": month,
+            "units": units,
+            "isSimulated": False
+        })
+        
+    save_household_readings(household_id, readings)
+    
+    # Trigger anomaly alert check
+    anomaly_result = run_anomaly_check(household_id)
+    return {
+        "status": "Success",
+        "anomaly_result": anomaly_result
+    }
+
+@app.get("/api/v1/notifications/{household_id}")
+def get_notifications(household_id: str):
+    """
+    Fetches in-app notification alerts for the selected household.
+    """
+    if not os.path.exists(NOTIFICATIONS_PATH):
+        return []
+    with open(NOTIFICATIONS_PATH, "r") as f:
+        try:
+            notifications = json.load(f)
+        except Exception:
+            notifications = []
+    # Filter household notifications and return in reverse chronological order
+    return sorted(
+        [n for n in notifications if n["householdId"] == household_id],
+        key=lambda x: x["timestamp"],
+        reverse=True
+    )
+
+@app.post("/api/v1/notifications/{household_id}/read/{notification_id}")
+def mark_notification_read(household_id: str, notification_id: str):
+    """
+    Marks a specific notification alert as read.
+    """
+    if not os.path.exists(NOTIFICATIONS_PATH):
+        raise HTTPException(status_code=404, detail="Notifications database empty.")
+    with open(NOTIFICATIONS_PATH, "r") as f:
+        notifications = json.load(f)
+        
+    found = False
+    for n in notifications:
+        if n["id"] == notification_id and n["householdId"] == household_id:
+            n["isRead"] = True
+            found = True
+            break
+            
+    if not found:
+        raise HTTPException(status_code=404, detail="Notification not found.")
+        
+    with open(NOTIFICATIONS_PATH, "w") as f:
+        json.dump(notifications, f, indent=2)
+        
+    return {"status": "Success"}
+
+@app.post("/api/v1/notifications/{household_id}/read-all")
+def mark_all_notifications_read(household_id: str):
+    """
+    Marks all notifications for a household as read.
+    """
+    if not os.path.exists(NOTIFICATIONS_PATH):
+        return {"status": "Success"}
+    with open(NOTIFICATIONS_PATH, "r") as f:
+        notifications = json.load(f)
+        
+    for n in notifications:
+        if n["householdId"] == household_id:
+            n["isRead"] = True
+            
+    with open(NOTIFICATIONS_PATH, "w") as f:
+        json.dump(notifications, f, indent=2)
+        
+    return {"status": "Success"}
+
+@app.get("/api/v1/settings/{household_id}")
+def get_settings(household_id: str):
+    """
+    Retrieves notification and anomaly threshold preferences.
+    """
+    return get_user_settings(household_id)
+
+@app.post("/api/v1/settings/{household_id}")
+def update_settings(household_id: str, settings: dict):
+    """
+    Updates user notification preferences and thresholds.
+    """
+    save_user_settings(household_id, settings)
+    return {"status": "Success", "settings": settings}
 
 if __name__ == "__main__":
     import uvicorn

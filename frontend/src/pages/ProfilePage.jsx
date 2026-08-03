@@ -27,7 +27,7 @@ import {
   Map
 } from 'lucide-react';
 
-function ProfilePage({ onBackToDashboard }) {
+function ProfilePage({ onBackToDashboard, selectedHouseholdId }) {
   const { currentUser } = useAuth();
   
   // Tab states: 'info' | 'password' | 'account'
@@ -43,6 +43,14 @@ function ProfilePage({ onBackToDashboard }) {
   
   // New user credentials fields
   const [age, setAge] = useState('');
+  
+  // Alert preference settings states
+  const [emailAlerts, setEmailAlerts] = useState(true);
+  const [smsAlerts, setSmsAlerts] = useState(false);
+  const [threshold, setThreshold] = useState(20);
+  const [alertEmail, setAlertEmail] = useState('');
+  const [alertPhone, setAlertPhone] = useState('');
+  const [isSettingsSaving, setIsSettingsSaving] = useState(false);
   const [gender, setGender] = useState('Male');
   const [dob, setDob] = useState('');
   const [address, setAddress] = useState('');
@@ -130,6 +138,57 @@ function ProfilePage({ onBackToDashboard }) {
 
     loadProfileData();
   }, [userKey, currentUser]);
+
+  // Load custom alert preferences on household select
+  useEffect(() => {
+    if (!selectedHouseholdId) return;
+    const fetchAlertSettings = async () => {
+      try {
+        const res = await fetch(`http://localhost:8000/api/v1/settings/${selectedHouseholdId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setEmailAlerts(data.email_alerts);
+          setSmsAlerts(data.sms_alerts);
+          setThreshold(data.threshold_percent);
+          setAlertEmail(data.email || '');
+          setAlertPhone(data.phone || '');
+        }
+      } catch (e) {
+        console.error("Error loading alert settings:", e);
+      }
+    };
+    fetchAlertSettings();
+  }, [selectedHouseholdId]);
+
+  const handleSaveAlertSettings = async (e) => {
+    e.preventDefault();
+    setIsSettingsSaving(true);
+    try {
+      const res = await fetch(`http://localhost:8000/api/v1/settings/${selectedHouseholdId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email_alerts: emailAlerts,
+          sms_alerts: smsAlerts,
+          threshold_percent: threshold,
+          email: alertEmail,
+          phone: alertPhone
+        })
+      });
+      if (res.ok) {
+        showToast('success', 'Alert preferences updated successfully!');
+      } else {
+        showToast('error', 'Failed to update alert preferences.');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('error', 'Error connecting to settings API.');
+    } finally {
+      setIsSettingsSaving(false);
+    }
+  };
 
   // Show auto-dismissing toast notifications
   const showToast = (type, message) => {
@@ -864,6 +923,99 @@ function ProfilePage({ onBackToDashboard }) {
                       <span className="font-extrabold text-slate-205">{getLastLoginDate()}</span>
                     </div>
                   </div>
+                </div>
+
+                {/* Alert and Anomaly Preferences */}
+                <div className="border-t border-slate-850 pt-5">
+                  <span className="text-[10px] uppercase font-bold text-slate-350 tracking-wider block mb-3 font-semibold">Monthly Usage Alert Settings</span>
+                  
+                  <form onSubmit={handleSaveAlertSettings} className="space-y-4 max-w-md">
+                    {/* Channel Toggles */}
+                    <div className="flex items-center justify-between p-3 rounded-xl border border-darkBorder/40 bg-[#07090e]/30">
+                      <div>
+                        <span className="text-xs font-bold text-slate-200 block">Email Alerts</span>
+                        <span className="text-[10px] text-slate-500">Receive email notification when usage exceeds threshold.</span>
+                      </div>
+                      <input 
+                        type="checkbox" 
+                        checked={emailAlerts}
+                        onChange={(e) => setEmailAlerts(e.target.checked)}
+                        className="h-4 w-4 rounded border-darkBorder/40 text-accentBlue accent-accentBlue focus:ring-0 cursor-pointer"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 rounded-xl border border-darkBorder/40 bg-[#07090e]/30">
+                      <div>
+                        <span className="text-xs font-bold text-slate-200 block">SMS Alerts (Twilio)</span>
+                        <span className="text-[10px] text-slate-500">Receive text notification on your mobile number.</span>
+                      </div>
+                      <input 
+                        type="checkbox" 
+                        checked={smsAlerts}
+                        onChange={(e) => setSmsAlerts(e.target.checked)}
+                        className="h-4 w-4 rounded border-darkBorder/40 text-accentBlue accent-accentBlue focus:ring-0 cursor-pointer"
+                      />
+                    </div>
+
+                    {/* Email Input */}
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider block">Notification Email</label>
+                      <input 
+                        type="email"
+                        required
+                        value={alertEmail}
+                        onChange={(e) => setAlertEmail(e.target.value)}
+                        className="w-full bg-[#07090e]/60 border border-darkBorder/40 rounded-xl px-4 py-2 text-xs text-slate-200 outline-none focus:border-accentBlue"
+                        placeholder="your-email@domain.com"
+                      />
+                    </div>
+
+                    {/* Phone Input */}
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider block">Notification Phone (Twilio Format)</label>
+                      <input 
+                        type="text"
+                        required
+                        value={alertPhone}
+                        onChange={(e) => setAlertPhone(e.target.value)}
+                        className="w-full bg-[#07090e]/60 border border-darkBorder/40 rounded-xl px-4 py-2 text-xs text-slate-200 outline-none focus:border-accentBlue"
+                        placeholder="e.g. +919876543210"
+                      />
+                    </div>
+
+                    {/* Slider for Anomaly Threshold */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+                        <span>Personal Anomaly Threshold</span>
+                        <span className="text-accentBlue font-bold">{threshold}%</span>
+                      </div>
+                      <input 
+                        type="range"
+                        min="10"
+                        max="50"
+                        value={threshold}
+                        onChange={(e) => setThreshold(parseInt(e.target.value))}
+                        className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-accentBlue outline-none"
+                      />
+                      <div className="flex justify-between text-[8px] text-slate-500 font-semibold">
+                        <span>Sensitive (10%)</span>
+                        <span>Lenient (50%)</span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSettingsSaving}
+                      className="bg-accentBlue text-white hover:bg-blue-600 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5"
+                    >
+                      {isSettingsSaving ? <Loader className="animate-spin h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
+                      <span>Save Preferences</span>
+                    </button>
+
+                    <p className="text-[7.5px] text-slate-500 italic leading-relaxed">
+                      * Alerts are based on your own household's historical pattern, not external benchmarks.
+                    </p>
+                  </form>
                 </div>
 
                 <div className="border-t border-slate-850 pt-5">

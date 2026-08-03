@@ -1,0 +1,26 @@
+{
+  "HH_001": [
+    { "month": "2026-02", "units": 195, "isSimulated": true },
+    { "month": "2026-03", "units": 205, "isSimulated": true },
+    { "month": "2026-04", "units": 198, "isSimulated": true },
+    { "month": "2026-05", "units": 210, "isSimulated": true },
+    { "month": "2026-06", "units": 202, "isSimulated": true },
+    { "month": "2026-07", "units": 260, "isSimulated": true }
+  ],
+  "HH_002": [
+    { "month": "2026-02", "units": 340, "isSimulated": true },
+    { "month": "2026-03", "units": 350, "isSimulated": true },
+    { "month": "2026-04", "units": 360, "isSimulated": true },
+    { "month": "2026-05", "units": 345, "isSimulated": true },
+    { "month": "2026-06", "units": 352, "isSimulated": true },
+    { "month": "2026-07", "units": 355, "isSimulated": true }
+  ],
+  "HH_003": [
+    { "month": "2026-02", "units": 270, "isSimulated": true },
+    { "month": "2026-03", "units": 285, "isSimulated": true },
+    { "month": "2026-04", "units": 268, "isSimulated": true },
+    { "month": "2026-05", "units": 290, "isSimulated": true },
+    { "month": "2026-06", "units": 275, "isSimulated": true },
+    { "month": "2026-07", "units": 365, "isSimulated": true }
+  ]
+}

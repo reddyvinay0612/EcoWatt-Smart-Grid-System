@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Zap, Lightbulb, Bell, ChevronDown, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import NotificationBell from './NotificationBell';
 
-export default function Header({ onProfileClick, notificationCount = 0 }) {
+export default function Header({ onProfileClick, selectedHouseholdId }) {
   const { currentUser } = useAuth();
   const { isDarkMode, toggleTheme } = useTheme();
   const [time, setTime] = useState(new Date());
@@ -115,15 +116,8 @@ export default function Header({ onProfileClick, notificationCount = 0 }) {
           {fmt(time)}
         </span>
 
-        {/* Notification bell icon with badge count */}
-        <button style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', color: isDarkMode ? '#CBD5E1' : '#475569', padding: 4 }}>
-          <Bell size={16} />
-          {notificationCount > 0 && (
-            <span style={{ position: 'absolute', top: 0, right: 0, background: '#3B82F6', borderRadius: '50%', width: 14, height: 14, fontSize: 8, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {notificationCount}
-            </span>
-          )}
-        </button>
+        {/* Notification bell icon with badge count dropdown */}
+        <NotificationBell selectedHouseholdId={selectedHouseholdId} />
 
         {/* User avatar */}
         <button onClick={onProfileClick} style={{ display: 'flex', alignItems: 'center', gap: 8, background: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.04)', border: `1px solid ${border}`, borderRadius: 10, padding: '5px 10px', cursor: 'pointer' }}>

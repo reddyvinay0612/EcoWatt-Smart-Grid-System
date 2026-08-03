@@ -14,6 +14,7 @@ import PredictionPanel       from './components/PredictionPanel';
 import ModelComparisonPanel  from './components/ModelComparisonPanel';
 import HouseholdSelector     from './components/HouseholdSelector';
 import AlertsPanel           from './components/AlertsPanel';
+import MonthlyUsageHistory   from './components/MonthlyUsageHistory';
 
 import { useAuth }          from './context/AuthContext';
 import { useTheme }         from './context/ThemeContext';
@@ -196,12 +197,15 @@ function App() {
             {/* Row 3: Load Trend Analysis */}
             <ConsumptionTrendChart historicalData={predictionData?.historical_24h} />
 
+            {/* Row 4: Monthly Anomaly Alert & Analyzer */}
+            <MonthlyUsageHistory selectedHouseholdId={selectedHouseholdId} />
+
           </div>
         );
       case 'evaluation':
         return <ModelComparisonPanel comparisonData={comparisonData} />;
       case 'profile':
-        return <ProfilePage onBackToDashboard={() => setActivePage('national')} />;
+        return <ProfilePage onBackToDashboard={() => setActivePage('national')} selectedHouseholdId={selectedHouseholdId} />;
       default:
         return <NationalAnalytics />;
     }
@@ -221,7 +225,7 @@ function App() {
       {/* Top Header */}
       <Header
         onProfileClick={() => setActivePage('profile')}
-        notificationCount={alertsData.filter(al => al.status === 'Critical Spike').length}
+        selectedHouseholdId={selectedHouseholdId}
       />
 
       {/* Sidebar + Main Display */}
