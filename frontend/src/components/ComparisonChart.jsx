@@ -48,6 +48,7 @@ export default function ComparisonChart({
   const cardBg = isDarkMode ? '#131824' : '#FFFFFF';
   const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
   const titleColor = isDarkMode ? '#FFFFFF' : '#0F172A';
+  const valueColor = isDarkMode ? '#E2E8F0' : '#0F172A';
   const selectBg = isDarkMode ? 'rgba(255,255,255,0.06)' : '#F1F5F9';
   const selectBorder = isDarkMode ? 'rgba(255,255,255,0.1)' : '#CBD5E1';
   const selectText = isDarkMode ? '#CBD5E1' : '#0F172A';
@@ -132,10 +133,10 @@ export default function ComparisonChart({
                 backgroundColor: isDarkMode ? '#131824' : '#FFFFFF', 
                 borderColor: cardBorder, 
                 borderRadius: '10px',
-                fontSize: '10px',
-                color: titleColor
+                fontSize: '10px'
               }}
-              labelStyle={{ color: '#94A3B8', fontWeight: '700' }}
+              itemStyle={{ color: valueColor, fontWeight: 700 }}
+              labelStyle={{ color: titleColor, fontWeight: 800 }}
             />
             <Legend wrapperStyle={{ fontSize: '10px', fontWeight: '700', paddingTop: '6px' }} iconSize={8} />
             <Bar name="Electricity (kWh)" dataKey="Electricity" fill="#3B82F6" radius={[4, 4, 0, 0]} maxBarSize={32} />

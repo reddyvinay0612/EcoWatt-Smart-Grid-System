@@ -13,6 +13,7 @@ export default function ForecastBarChart() {
   const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
   const titleColor = isDarkMode ? '#FFFFFF' : '#0F172A';
   const labelColor = isDarkMode ? '#94A3B8' : '#475569';
+  const valueColor = isDarkMode ? '#E2E8F0' : '#0F172A';
 
   return (
     <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, padding: '12px 14px', overflow: 'hidden' }}>
@@ -31,7 +32,12 @@ export default function ForecastBarChart() {
             <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? '#1e293b' : '#E2E8F0'} vertical={false} />
             <XAxis dataKey="day" stroke={labelColor} fontSize={9} tickLine={false} />
             <YAxis stroke={labelColor} fontSize={9} tickLine={false} axisLine={false} unit=" GW" />
-            <Tooltip contentStyle={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, fontSize: 10, color: titleColor }} labelStyle={{ color: labelColor, fontWeight: 'bold' }} formatter={v => [`${v} GW`, 'Forecast']} />
+            <Tooltip 
+              contentStyle={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, fontSize: 10 }} 
+              itemStyle={{ color: valueColor, fontWeight: 700 }}
+              labelStyle={{ color: titleColor, fontWeight: 800 }}
+              formatter={v => [`${v} GW`, 'Forecast']} 
+            />
             <Bar dataKey="gw" radius={[4, 4, 0, 0]}>
               {DATA.map((_, i) => <Cell key={i} fill={`url(#bg${i})`} />)}
             </Bar>

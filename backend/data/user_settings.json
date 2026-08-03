@@ -1,10 +1,10 @@
 {
   "HH_001": {
     "email_alerts": true,
-    "sms_alerts": false,
+    "sms_alerts": true,
     "threshold_percent": 20,
-    "email": "alerts_hh001@example.com",
-    "phone": "+919876543210"
+    "email": "reddyvinayprakash@gmail.com",
+    "phone": "+91 9916083095"
   },
   "HH_002": {
     "email_alerts": true,
@@ -15,9 +15,9 @@
   },
   "HH_003": {
     "email_alerts": true,
-    "sms_alerts": false,
-    "threshold_percent": 20,
-    "email": "alerts_hh003@example.com",
-    "phone": "+919876543212"
+    "sms_alerts": true,
+    "threshold_percent": 30,
+    "email": "vinayprakashvg@gmail.com",
+    "phone": "+91 9353642283"
   }
 }

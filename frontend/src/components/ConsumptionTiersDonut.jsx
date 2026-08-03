@@ -44,7 +44,12 @@ export default function ConsumptionTiersDonut({ activeMetric = 'electricity' }) 
               <Pie data={data} cx="50%" cy="50%" innerRadius={28} outerRadius={46} paddingAngle={3} dataKey="value" isAnimationActive>
                 {data.map((e, i) => <Cell key={i} fill={e.color} stroke="transparent" />)}
               </Pie>
-              <Tooltip contentStyle={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, fontSize: 10, color: titleColor }} formatter={(v, n) => [`${v} states`, n]} />
+              <Tooltip 
+                contentStyle={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, fontSize: 10 }} 
+                itemStyle={{ color: valueColor, fontWeight: 700 }}
+                labelStyle={{ color: titleColor, fontWeight: 800 }}
+                formatter={(v, n) => [`${v} states`, n]} 
+              />
             </PieChart>
           </ResponsiveContainer>
         </div>
