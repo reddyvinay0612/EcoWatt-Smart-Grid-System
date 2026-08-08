@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Home, BarChart3, Settings,
-  LogOut, User as UserIcon, Globe
+  LogOut, User as UserIcon, Globe, Sparkles
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -31,6 +31,7 @@ export default function Sidebar({
     { id: 'national',   label: 'National Analytics',  Icon: Globe        },
     { id: 'overview',   label: 'Residential Monitor',  Icon: Home         },
     { id: 'evaluation', label: 'Model Evaluation',    Icon: BarChart3    },
+    { id: 'agent',      label: 'Cortex AI Workspace', Icon: Sparkles     },
     { id: 'profile',    label: 'Settings',            Icon: Settings     },
   ];
 

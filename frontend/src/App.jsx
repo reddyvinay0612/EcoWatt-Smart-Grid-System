@@ -16,6 +16,8 @@ import HouseholdSelector     from './components/HouseholdSelector';
 import AlertsPanel           from './components/AlertsPanel';
 import MonthlyUsageHistory   from './components/MonthlyUsageHistory';
 import AgentChatWidget       from './components/AgentChatWidget';
+import ChatInterface         from './components/ChatInterface';
+import MetricsDashboard      from './components/MetricsDashboard';
 
 import { useAuth }          from './context/AuthContext';
 import { useTheme }         from './context/ThemeContext';
@@ -44,7 +46,8 @@ function App() {
   const { isDarkMode } = useTheme();
   const isAuthenticated = !!currentUser;
 
-  const [activePage,          setActivePage]          = useState('national'); // Default to National Analytics
+  const [activePage,          setActivePage]          = useState('agent'); // Default to Cortex Agent page
+  const [activeQuery,         setActiveQuery]         = useState(null);
   const [households,          setHouseholds]          = useState([]);
   const [selectedHouseholdId, setSelectedHouseholdId] = useState('');
   
@@ -201,6 +204,17 @@ function App() {
             {/* Row 4: Monthly Anomaly Alert & Analyzer */}
             <MonthlyUsageHistory selectedHouseholdId={selectedHouseholdId} />
 
+          </div>
+        );
+      case 'agent':
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 14, height: 'calc(100vh - 80px)', minHeight: 0, overflow: 'hidden' }}>
+            <div style={{ minHeight: 0, overflowY: 'auto', paddingRight: 4 }}>
+              <MetricsDashboard onPresetClick={(query) => setActiveQuery(query)} />
+            </div>
+            <div style={{ minHeight: 0 }}>
+              <ChatInterface activeQuery={activeQuery} clearActiveQuery={() => setActiveQuery(null)} />
+            </div>
           </div>
         );
       case 'evaluation':

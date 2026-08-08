@@ -472,7 +472,27 @@ def simulate_cortex_response(msg: str, conversation_history: list = None):
                            "4. **LED Retrofitting**: Replace legacy incandescent bulbs with star-labeled LEDs, reducing lighting electricity demand by **80%**."
             }
 
-    # INTENT E: Comparison
+    # INTENT E: Anomaly Explanation (Includes "why is...", "why did...")
+    is_anomaly = contains_word(["anomaly", "anomalous", "spike", "unusual", "irregular"]) or "why is" in msg_lower or "why did" in msg_lower or "reason for" in msg_lower
+    if is_anomaly:
+        hh_info = ""
+        if resolved_household == "HH_001" or resolved_household == "HH_003" or household_id in ["HH_001", "HH_003"]:
+            hh_target = resolved_household if resolved_household else household_id
+            hh_val = "260.0 kWh (+28.7%)" if hh_target == "HH_001" else "365.0 kWh (+31.5%)"
+            hh_info = f"\nFor household **{hh_target}**, telemetry recorded a usage of **{hh_val}** in July 2026, triggering an alert.\n"
+            
+        return {
+            "status": "success",
+            "message": "### 🚨 Anomaly & Usage Spikes Explanation\n\n"
+                       "An anomaly is flagged when a household's monthly electricity consumption exceeds its 6-month historical baseline by more than **20%**.\n"
+                       f"{hh_info}\n"
+                       "**Common Causes of Spikes:**\n"
+                       "1. **Heavy Thermal Loads**: Continuous operation of A/Cs, space heaters, or hot water geysers.\n"
+                       "2. **Vampire Loads**: Running high-drain appliances during peak demand periods.\n"
+                       "3. **Meter Recalibration / Telemetry Faults**: Temporary sensor transmission errors in the smart meter node."
+        }
+
+    # INTENT F: Comparison
     is_compare = contains_word(["compare", "comparison", "versus", "vs"]) or len(found_locations) >= 2
     if is_compare:
         if len(found_locations) < 2:
@@ -503,7 +523,7 @@ def simulate_cortex_response(msg: str, conversation_history: list = None):
                        f"| **Carbon Emission footprint** | {valCarbonA} kg CO2 | {valCarbonB} kg CO2 | {diffCarbon} kg |\n"
         }
 
-    # INTENT F: Ranking
+    # INTENT G: Ranking
     is_ranking = contains_word(["highest", "lowest", "maximum", "minimum", "max", "min", "top", "bottom", "most", "least"])
     if is_ranking:
         is_lowest = contains_word(["lowest", "minimum", "min", "bottom", "least"])
@@ -525,26 +545,6 @@ def simulate_cortex_response(msg: str, conversation_history: list = None):
                        f"Here are the top 5 states in India matching your criteria:\n\n"
                        f"| Rank | State Name | Avg Electricity | Estimated Carbon Footprint |\n"
                        f"| :--- | :--- | :--- | :--- |\n" + "\n".join(rank_list)
-        }
-
-    # INTENT G: Anomaly Explanation (Includes "why is...", "why did...")
-    is_anomaly = contains_word(["anomaly", "anomalous", "spike", "unusual", "irregular"]) or "why is" in msg_lower or "why did" in msg_lower or "reason for" in msg_lower
-    if is_anomaly:
-        hh_info = ""
-        if resolved_household == "HH_001" or resolved_household == "HH_003" or household_id in ["HH_001", "HH_003"]:
-            hh_target = resolved_household if resolved_household else household_id
-            hh_val = "260.0 kWh (+28.7%)" if hh_target == "HH_001" else "365.0 kWh (+31.5%)"
-            hh_info = f"\nFor household **{hh_target}**, telemetry recorded a usage of **{hh_val}** in July 2026, triggering an alert.\n"
-            
-        return {
-            "status": "success",
-            "message": "### 🚨 Anomaly & Usage Spikes Explanation\n\n"
-                       "An anomaly is flagged when a household's monthly electricity consumption exceeds its 6-month historical baseline by more than **20%**.\n"
-                       f"{hh_info}\n"
-                       "**Common Causes of Spikes:**\n"
-                       "1. **Heavy Thermal Loads**: Continuous operation of A/Cs, space heaters, or hot water geysers.\n"
-                       "2. **Vampire Loads**: Running high-drain appliances during peak demand periods.\n"
-                       "3. **Meter Recalibration / Telemetry Faults**: Temporary sensor transmission errors in the smart meter node."
         }
 
     # INTENT H: Trend & History queries
