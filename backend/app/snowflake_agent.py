@@ -188,8 +188,25 @@ def simulate_cortex_response(msg: str):
     Correctly parses query intents, extracts entities, and queries real underlying data.
     """
     import re
-    msg_lower = msg.lower()
+    # Common Indian location spelling aliases and standardizations
+    COMMON_LOCATION_ALIASES = {
+        "bangalore": "bengaluru urban",
+        "mysore": "mysuru",
+        "bombay": "mumbai city",
+        "calcutta": "kolkata",
+        "madras": "chennai",
+        "bengaluru": "bengaluru urban",
+        "mumbai": "mumbai city",
+        "kalaburgi": "kalaburagi",
+        "belgaum": "belagavi",
+        "hubli": "hubli",
+        "vizag": "visakhapatnam"
+    }
     
+    for alias, standard in COMMON_LOCATION_ALIASES.items():
+        pattern = r'\b' + re.escape(alias) + r'\b'
+        msg_lower = re.sub(pattern, standard, msg_lower)
+
     # Word boundary checker helper to prevent substring matching bugs (e.g. matching "min" in "minister")
     def contains_word(words_list):
         for word in words_list:
@@ -247,7 +264,7 @@ def simulate_cortex_response(msg: str):
         # Check entire query or individual words (len > 4) against corpus keys
         words = [w.strip("?,.! ") for w in msg_lower.split() if len(w.strip("?,.! ")) > 4]
         for word in words:
-            matches = difflib.get_close_matches(word, corpus.keys(), n=1, cutoff=0.7)
+            matches = difflib.get_close_matches(word, corpus.keys(), n=1, cutoff=0.6)
             if matches:
                 matched_key = matches[0]
                 if not any(l["name"] == corpus[matched_key]["name"] for l in found_locations):
