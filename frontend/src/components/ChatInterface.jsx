@@ -92,12 +92,13 @@ export default function ChatInterface({ activeQuery, clearActiveQuery }) {
             try {
               const parsed = JSON.parse(dataStr);
               if (parsed.type === 'text') {
-                // Stream text tokens into assistant message
+                // Stream text tokens into assistant message (immutable update to avoid StrictMode double-append)
                 setMessages(prev => {
                   const updated = [...prev];
-                  const lastMsg = updated[updated.length - 1];
+                  const lastIdx = updated.length - 1;
+                  const lastMsg = updated[lastIdx];
                   if (lastMsg && lastMsg.role === 'assistant') {
-                    lastMsg.content += parsed.text;
+                    updated[lastIdx] = { ...lastMsg, content: lastMsg.content + parsed.text };
                   }
                   return updated;
                 });
@@ -110,19 +111,23 @@ export default function ChatInterface({ activeQuery, clearActiveQuery }) {
                   result: parsed.result
                 });
 
-                // Attach to final message log once successful
+                // Attach to final message log once successful (immutable update)
                 if (parsed.status === 'success') {
                   setMessages(prev => {
                     const updated = [...prev];
-                    const lastMsg = updated[updated.length - 1];
+                    const lastIdx = updated.length - 1;
+                    const lastMsg = updated[lastIdx];
                     if (lastMsg && lastMsg.role === 'assistant') {
-                      if (!lastMsg.toolCalls) lastMsg.toolCalls = [];
-                      if (!lastMsg.toolCalls.some(t => t.query === parsed.query)) {
-                        lastMsg.toolCalls.push({
-                          name: parsed.tool,
-                          query: parsed.query,
-                          result: parsed.result
-                        });
+                      const existingCalls = lastMsg.toolCalls || [];
+                      if (!existingCalls.some(t => t.query === parsed.query)) {
+                        updated[lastIdx] = {
+                          ...lastMsg,
+                          toolCalls: [...existingCalls, {
+                            name: parsed.tool,
+                            query: parsed.query,
+                            result: parsed.result
+                          }]
+                        };
                       }
                     }
                     return updated;
