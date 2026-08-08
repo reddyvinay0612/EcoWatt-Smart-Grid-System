@@ -221,11 +221,10 @@ export default function AgentChatWidget() {
         </button>
       )}
 
-      {/* Chat Window Panel */}
       {isOpen && (
         <div style={{
-          width: 350,
-          height: 460,
+          width: 'min(480px, 90vw)',
+          height: 'min(600px, 85vh)',
           background: cardBg,
           border: `1px solid ${cardBorder}`,
           borderRadius: 16,
