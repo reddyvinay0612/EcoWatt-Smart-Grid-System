@@ -153,6 +153,18 @@ export default function NationalAnalytics() {
     }).catch(console.error);
   };
 
+  const selectedStateObj = useMemo(() => {
+    if (!selectedState) return null;
+    return stateData.find(s => s.name === selectedState);
+  }, [selectedState]);
+
+  const activeBaseAvg = useMemo(() => {
+    if (selectedStateObj) {
+      return activeMetric === 'carbon' ? selectedStateObj.carbonEmission : selectedStateObj.electricityConsumption;
+    }
+    return activeMetric === 'carbon' ? NATIONAL_CARBON_AVG : NATIONAL_AVG;
+  }, [selectedStateObj, activeMetric]);
+
   /* ══════════════════════════════════════════════════════════════════
      NATIONAL COMMAND-CENTER VIEW
   ══════════════════════════════════════════════════════════════════ */
@@ -205,7 +217,7 @@ export default function NationalAnalytics() {
             <ConsumptionTiersDonut activeMetric={activeMetric} />
           </div>
           <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, overflow: 'hidden' }}>
-            <ConsumptionTrendChart />
+            <ConsumptionTrendChart baseAvg={activeBaseAvg} />
           </div>
         </div>
 

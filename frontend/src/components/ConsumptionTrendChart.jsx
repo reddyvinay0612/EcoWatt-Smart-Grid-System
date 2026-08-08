@@ -3,7 +3,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { CalendarRange, ChevronDown } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
-export default function ConsumptionTrendChart({ historicalData = [] }) {
+export default function ConsumptionTrendChart({ historicalData = [], baseAvg = 250 }) {
   const { isDarkMode } = useTheme();
   const [range, setRange] = useState('Day');
 
@@ -18,17 +18,41 @@ export default function ConsumptionTrendChart({ historicalData = [] }) {
 
   // Compute dataset based on selected range
   const chartData = useMemo(() => {
-    if (!historicalData || historicalData.length === 0) return [];
+    let dataToUse = historicalData;
     
+    // Generate high-fidelity simulated telemetry history if not provided
+    if (!dataToUse || dataToUse.length === 0) {
+      const now = new Date();
+      const simData = [];
+      const hourlyAvg = baseAvg / 720; // convert monthly baseline to average hourly kW draw
+      
+      for (let i = 23; i >= 0; i--) {
+        const time = new Date(now.getTime() - i * 60 * 60 * 1000);
+        const hour = time.getHours();
+        
+        // Diurnal load cycle: peak in evening, minimum in early morning
+        const sinePart = Math.sin((hour - 6) * Math.PI / 12) * (hourlyAvg * 0.3);
+        const peakPart = (hour >= 18 && hour <= 22) ? (hourlyAvg * 0.25) : 0;
+        const randomNoise = (Math.sin(i * 1.7) * (hourlyAvg * 0.05)) + (Math.cos(i * 0.9) * (hourlyAvg * 0.03));
+        const value = Math.max(0.1, round(hourlyAvg + sinePart + peakPart + randomNoise, 3));
+        
+        simData.push({
+          timestamp: time.toISOString(),
+          value: value
+        });
+      }
+      dataToUse = simData;
+    }
+
     if (range === 'Day') {
-      return historicalData.map(d => ({
+      return dataToUse.map(d => ({
         time: new Date(d.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         Load: d.value
       }));
     } else if (range === 'Week') {
       const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
       return days.map((day, idx) => {
-        const val = historicalData.reduce((acc, curr) => acc + curr.value, 0) / (historicalData.length || 1);
+        const val = dataToUse.reduce((acc, curr) => acc + curr.value, 0) / (dataToUse.length || 1);
         const dayFactor = idx >= 5 ? 1.25 : 0.95;
         return {
           time: day,
@@ -38,7 +62,7 @@ export default function ConsumptionTrendChart({ historicalData = [] }) {
     } else {
       const weeks = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
       return weeks.map((week, idx) => {
-        const val = historicalData.reduce((acc, curr) => acc + curr.value, 0) / (historicalData.length || 1);
+        const val = dataToUse.reduce((acc, curr) => acc + curr.value, 0) / (dataToUse.length || 1);
         const weekFactor = 1.0 + Math.sin(idx * 1.5) * 0.1;
         return {
           time: week,
@@ -46,7 +70,7 @@ export default function ConsumptionTrendChart({ historicalData = [] }) {
         };
       });
     }
-  }, [historicalData, range]);
+  }, [historicalData, baseAvg, range]);
 
   function round(value, precision) {
     var multiplier = Math.pow(10, precision || 0);
