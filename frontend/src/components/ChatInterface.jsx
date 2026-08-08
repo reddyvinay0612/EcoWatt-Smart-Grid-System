@@ -15,15 +15,12 @@ export default function ChatInterface({ activeQuery, clearActiveQuery }) {
   const [activeTool, setActiveTool] = useState(null); // { name, status, query, result }
   const messagesEndRef = useRef(null);
 
-  const cardBg = isDarkMode ? '#131824' : '#FFFFFF';
-  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
-  const titleColor = isDarkMode ? '#FFFFFF' : '#0F172A';
-  const labelColor = isDarkMode ? '#94A3B8' : '#475569';
-  const bubbleUserBg = '#3B82F6';
-  const bubbleBotBg = isDarkMode ? '#1E293B' : '#F1F5F9';
-  const textUserColor = '#FFFFFF';
-  const textBotColor = isDarkMode ? '#CBD5E1' : '#1E293B';
-  const inputBg = isDarkMode ? '#07090E' : '#F8FAFC';
+  // ── Theme from reference screenshot ───────────────────────────
+  const cardBg     = '#FFFFFF';
+  const cardBorder = '#E8EDF2';
+  const titleColor = '#0D1B17';
+  const labelColor = '#64748B';
+  const inputBg    = '#F5F7FA';
 
   // Watch for quick action clicks from the parent dashboard page
   useEffect(() => {
@@ -271,19 +268,19 @@ export default function ChatInterface({ activeQuery, clearActiveQuery }) {
   };
 
   return (
-    <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 16, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+    <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 16, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }}>
       
       {/* Header */}
-      <div className="p-4 border-b border-slate-800/80 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 flex items-center justify-between">
+      <div style={{ padding: '14px 18px', borderBottom: `1px solid ${cardBorder}`, background: '#0B1C14', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: '16px 16px 0 0' }}>
         <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-pulse" />
-          <span className="text-xs font-black text-white tracking-widest uppercase">Snowflake Cortex Agent</span>
+          <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse" />
+          <span style={{ fontSize: 11, fontWeight: 800, color: '#FFFFFF', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Snowflake Cortex Agent</span>
         </div>
-        <Sparkles size={15} className="text-blue-500" />
+        <Sparkles size={15} className="text-emerald-400" />
       </div>
 
       {/* Message Feed */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px', gap: 12, display: 'flex', flexDirection: 'column', background: '#F5F7FA' }}>
         {messages.map((m, idx) => {
           const isUser = m.role === 'user';
           return (
@@ -291,29 +288,36 @@ export default function ChatInterface({ activeQuery, clearActiveQuery }) {
               
               {/* Tool Calls Log (For assistant responses) */}
               {!isUser && m.toolCalls && m.toolCalls.map((t, tIdx) => (
-                <div key={tIdx} className="mb-2 bg-slate-900/60 border border-slate-800/80 rounded-lg p-2.5 w-full max-w-[90%] space-y-2">
-                  <div className="flex items-center gap-2">
-                    {getToolIcon(t.name)}
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{getToolLabel(t.name)} (Success)</span>
-                  </div>
-                  <pre className="text-[9px] font-mono bg-black/40 text-slate-300 p-2 rounded overflow-x-auto border border-slate-900">
-                    {t.query}
-                  </pre>
-                  {t.result && (
-                    <div className="text-[9px] font-mono text-emerald-400 bg-slate-950/80 p-1.5 rounded border border-slate-900">
-                      <strong>Result:</strong> {JSON.stringify(t.result)}
-                    </div>
-                  )}
+                <div style={{ marginBottom: 8, background: '#FFFFFF', border: '1px solid #E8EDF2', borderRadius: 10, padding: '10px 12px', width: '100%', maxWidth: '92%', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+                <div className="flex items-center gap-2 mb-2">
+                  {getToolIcon(t.name)}
+                  <span style={{ fontSize: 9, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{getToolLabel(t.name)} (Success)</span>
                 </div>
+                <pre style={{ fontSize: 9, fontFamily: 'monospace', background: '#F5F7FA', color: '#334155', padding: '8px', borderRadius: 6, overflow: 'auto', border: '1px solid #E8EDF2', margin: 0 }}>
+                  {t.query}
+                </pre>
+                {t.result && (
+                  <div style={{ fontSize: 9, fontFamily: 'monospace', color: '#059669', background: '#F0FDF4', padding: '6px 8px', borderRadius: 6, border: '1px solid #D1FAE5', marginTop: 4 }}>
+                    <strong>Result:</strong> {JSON.stringify(t.result)}
+                  </div>
+                )}
+              </div>
               ))}
 
               {/* Chat Bubble */}
               <div 
-                className={`max-w-[85%] p-3 rounded-2xl text-xs leading-relaxed ${
-                  isUser 
-                    ? 'bg-blue-600 text-white rounded-br-none' 
-                    : 'bg-slate-800/70 border border-slate-700/30 text-slate-300 rounded-bl-none shadow-lg'
-                }`}
+                style={{
+                  maxWidth: '85%',
+                  padding: '10px 14px',
+                  borderRadius: isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                  fontSize: 12,
+                  lineHeight: 1.65,
+                  background: isUser ? '#10B981' : '#FFFFFF',
+                  color: isUser ? '#FFFFFF' : '#0D1B17',
+                  boxShadow: isUser ? '0 2px 8px rgba(16,185,129,0.25)' : '0 1px 4px rgba(0,0,0,0.08)',
+                  border: isUser ? 'none' : '1px solid #E8EDF2',
+                  fontWeight: 450,
+                }}
               >
                 {isUser ? m.content : renderContent(m.content)}
               </div>
@@ -324,15 +328,15 @@ export default function ChatInterface({ activeQuery, clearActiveQuery }) {
         {/* Live Active Tool Stream Indicator */}
         {loading && activeTool && (
           <div className="flex flex-col items-start">
-            <div className="bg-slate-900/80 border border-blue-900/30 rounded-lg p-3 w-full max-w-[90%] space-y-2 animate-pulse">
+            <div style={{ background: '#FFFFFF', border: '1px solid #E8EDF2', borderRadius: 10, padding: '10px 12px', width: '100%', maxWidth: '92%', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }} className="space-y-2">
               <div className="flex items-center gap-2">
-                <Loader2 size={12} className="text-blue-500 animate-spin" />
-                <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">
+                <Loader2 size={12} className="text-emerald-500 animate-spin" />
+                <span style={{ fontSize: 9, fontWeight: 800, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                   {getToolLabel(activeTool.name)} ({activeTool.status === 'running' ? 'Running' : 'Done'})
                 </span>
               </div>
               {activeTool.query && (
-                <pre className="text-[9px] font-mono bg-black/50 text-slate-300 p-2 rounded overflow-x-auto border border-slate-900">
+                <pre style={{ fontSize: 9, fontFamily: 'monospace', background: '#F5F7FA', color: '#334155', padding: '8px', borderRadius: 6, overflow: 'auto', border: '1px solid #E8EDF2', margin: 0 }}>
                   {activeTool.query}
                 </pre>
               )}
@@ -342,8 +346,8 @@ export default function ChatInterface({ activeQuery, clearActiveQuery }) {
 
         {/* Loading Indicator */}
         {loading && !activeTool && (
-          <div className="flex items-center gap-1.5 text-xs text-slate-400">
-            <Loader2 size={13} className="animate-spin text-blue-500" />
+          <div className="flex items-center gap-1.5 text-xs" style={{ color: '#64748B' }}>
+            <Loader2 size={13} className="animate-spin text-emerald-500" />
             <span>Cortex is formulating reply...</span>
           </div>
         )}
@@ -354,7 +358,7 @@ export default function ChatInterface({ activeQuery, clearActiveQuery }) {
       {/* Input Field */}
       <form 
         onSubmit={(e) => { e.preventDefault(); handleSend(); }} 
-        className="p-3 border-t border-slate-800/60 flex gap-2 items-center"
+        style={{ padding: '12px 14px', borderTop: `1px solid ${cardBorder}`, display: 'flex', gap: 8, alignItems: 'center', background: '#FFFFFF' }}
       >
         <input
           type="text"
@@ -362,19 +366,35 @@ export default function ChatInterface({ activeQuery, clearActiveQuery }) {
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask Cortex about facilities, policies, or projections..."
           disabled={loading}
-          className="flex-1 rounded-xl px-4 py-2.5 text-xs outline-none border transition-all"
           style={{
+            flex: 1,
+            borderRadius: 10,
+            padding: '9px 14px',
+            fontSize: 12,
+            outline: 'none',
+            border: `1px solid ${cardBorder}`,
             background: inputBg,
-            borderColor: cardBorder,
-            color: titleColor
+            color: titleColor,
+            transition: 'border-color 0.15s',
           }}
+          onFocus={e => e.target.style.borderColor = '#10B981'}
+          onBlur={e => e.target.style.borderColor = cardBorder}
         />
         <button
           type="submit"
           disabled={loading || !input.trim()}
-          className="w-9 h-9 rounded-xl flex items-center justify-center text-white cursor-pointer transition-all bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+          style={{
+            width: 36, height: 36,
+            borderRadius: 10,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: '#10B981',
+            border: 'none',
+            cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
+            opacity: loading || !input.trim() ? 0.5 : 1,
+            transition: 'all 0.15s',
+          }}
         >
-          <Send size={15} />
+          <Send size={15} color="#FFFFFF" />
         </button>
       </form>
     </div>

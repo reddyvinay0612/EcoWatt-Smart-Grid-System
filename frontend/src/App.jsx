@@ -208,7 +208,7 @@ function App() {
         );
       case 'agent':
         return (
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 14, height: 'calc(100vh - 80px)', minHeight: 0, overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 14, height: 'calc(100vh - 80px)', minHeight: 0, overflow: 'hidden', background: '#F5F7FA', padding: '14px 0 14px 0' }}>
             <div style={{ minHeight: 0, overflowY: 'auto', paddingRight: 4 }}>
               <MetricsDashboard onPresetClick={(query) => setActiveQuery(query)} />
             </div>
@@ -217,6 +217,7 @@ function App() {
             </div>
           </div>
         );
+
       case 'evaluation':
         return <ModelComparisonPanel comparisonData={comparisonData} />;
       case 'profile':
