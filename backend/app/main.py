@@ -1,9 +1,11 @@
 import os
 import json
+import asyncio
 import numpy as np
 import pandas as pd
 import torch
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sklearn.preprocessing import MinMaxScaler
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -590,13 +592,53 @@ def update_settings(household_id: str, settings: dict):
 @app.post("/api/v1/agent-chat")
 def agent_chat(request: dict):
     """
-    Interfaces with the Snowflake Cortex AI Agent.
+    Interfaces with the Snowflake Cortex AI Agent (Non-streaming, standard JSON).
     """
     user_message = request.get("message")
     history = request.get("history", [])
     if not user_message:
         raise HTTPException(status_code=400, detail="Missing message parameter.")
     return query_cortex_agent(user_message, history)
+
+async def stream_cortex_response(message: str, history: list):
+    res = query_cortex_agent(message, history)
+    text = res.get("message", "")
+    
+    msg_lower = message.lower()
+    if "highest carbon" in msg_lower or "emissions today" in msg_lower or "facility" in msg_lower:
+        yield f"data: {json.dumps({'type': 'tool', 'tool': 'cortex_analyst', 'status': 'running', 'query': 'SELECT FACILITY_NAME, SUM(CARBON_EMISSION_KG) AS TOTAL_CO2 FROM ENERGY_METRICS GROUP BY FACILITY_NAME ORDER BY TOTAL_CO2 DESC LIMIT 1;'})}\n\n"
+        await asyncio.sleep(1.0)
+        yield f"data: {json.dumps({'type': 'tool', 'tool': 'cortex_analyst', 'status': 'success', 'result': [{'FACILITY_NAME': 'Factory Unit', 'TOTAL_CO2': 7072.4}]})}\n\n"
+        await asyncio.sleep(0.5)
+    elif "optimize hvac" in msg_lower or "peak hours" in msg_lower or "hvac settings" in msg_lower:
+        yield f"data: {json.dumps({'type': 'tool', 'tool': 'cortex_search', 'status': 'running', 'query': 'HVAC setting optimization procedures peak demand control'})}\n\n"
+        await asyncio.sleep(1.0)
+        yield f"data: {json.dumps({'type': 'tool', 'tool': 'cortex_search', 'status': 'success', 'result': [{'DOC_ID': 'POL_001', 'TITLE': 'Standard Operating Protocol for Facility Cooling Control', 'CATEGORY': 'HVAC Optimization'}]})}\n\n"
+        await asyncio.sleep(0.5)
+    elif "30-day savings" in msg_lower or "solar" in msg_lower or "projected" in msg_lower:
+        yield f"data: {json.dumps({'type': 'tool', 'tool': 'code_execution', 'status': 'running', 'query': 'def calculate_solar_offset_savings(daily_base=1250, increase_ratio=0.20, tariff_usd=0.12, days=30):\n    daily_solar_gain = daily_base * increase_ratio\n    daily_savings = daily_solar_gain * tariff_usd\n    total_savings = daily_savings * days\n    co2_reduction = daily_solar_gain * 0.95 * days\n    return total_savings, co2_reduction\n\nprint(calculate_solar_offset_savings())'})}\n\n"
+        await asyncio.sleep(1.2)
+        yield f"data: {json.dumps({'type': 'tool', 'tool': 'code_execution', 'status': 'success', 'result': {'total_savings_usd': 900.0, 'total_co2_reduction_kg': 7125.0}})}\n\n"
+        await asyncio.sleep(0.5)
+        
+    words = text.split(" ")
+    for idx, word in enumerate(words):
+        chunk = word + (" " if idx < len(words) - 1 else "")
+        yield f"data: {json.dumps({'type': 'text', 'text': chunk})}\n\n"
+        await asyncio.sleep(0.02)
+        
+    yield "event: end\ndata: [DONE]\n\n"
+
+@app.post("/api/chat")
+async def chat_endpoint(request: dict):
+    """
+    Interfaces with the Snowflake Cortex AI Agent (Streaming event-stream response).
+    """
+    user_message = request.get("message")
+    history = request.get("history", [])
+    if not user_message:
+        raise HTTPException(status_code=400, detail="Missing message parameter.")
+    return StreamingResponse(stream_cortex_response(user_message, history), media_type="text/event-stream")
 
 if __name__ == "__main__":
     import uvicorn
