@@ -71,7 +71,7 @@ REAL_DISTRICT_NAMES = {
   "Himachal Pradesh": ["Shimla", "Dharamshala", "Solan", "Mandi", "Kullu", "Hamirpur", "Chamba", "Una", "Kangra", "Bilaspur"],
   "Jammu and Kashmir": ["Srinagar", "Jammu", "Anantnag", "Baramulla", "Kathua", "Udhampur", "Kupwara", "Samba", "Pulwama", "Poonch"],
   "Jharkhand": ["Ranchi", "Jamshedpur", "Dhanbad", "Bokaro", "Hazaribagh", "Deoghar", "Giridih", "Dumka", "Adityapur"],
-  "Karnataka": ["Bengaluru Urban", "Mysuru", "Belagavi", "Dharwad", "Dakshina Kannada", "Kalaburagi", "Ballari", "Udupi", "Hubli", "Mangaluru"],
+  "Karnataka": ["Bengaluru Urban", "Mysuru", "Belagavi", "Dharwad", "Dakshina Kannada", "Kalaburagi", "Ballari", "Udupi", "Hubli", "Mangaluru", "Shivamogga"],
   "Kerala": ["Thiruvananthapuram", "Ernakulam (Kochi)", "Kozhikode", "Thrissur", "Malappuram", "Palakkad", "Kollam", "Alappuzha", "Kannur", "Kottayam"],
   "Ladakh": ["Leh", "Kargil"],
   "Lakshadweep": ["Kavaratti", "Agatti", "Minicoy"],
@@ -202,7 +202,8 @@ def simulate_cortex_response(msg: str, conversation_history: list = None):
         "kalaburgi": "kalaburagi",
         "belgaum": "belagavi",
         "hubli": "hubli",
-        "vizag": "visakhapatnam"
+        "vizag": "visakhapatnam",
+        "shivammoga": "shivamogga"
     }
     
     for alias, standard in COMMON_LOCATION_ALIASES.items():
@@ -220,10 +221,10 @@ def simulate_cortex_response(msg: str, conversation_history: list = None):
     # ----------------------------------------------------
     # 0. PRONOUN & CONVERSATION HISTORY RESOLUTION (Memory)
     # ----------------------------------------------------
-    resolved_location = None
+    resolved_locations = []
     resolved_household = None
     
-    context_keywords = ["it", "that", "this", "its", "those", "them", "district", "state", "household", "spike"]
+    context_keywords = ["it", "that", "this", "its", "those", "them", "district", "state", "household", "spike", "more", "details", "elaborate", "continue"]
     has_context_ref = contains_word(context_keywords)
     
     if has_context_ref and conversation_history:
@@ -235,26 +236,27 @@ def simulate_cortex_response(msg: str, conversation_history: list = None):
                 state_data = next(s for s in STATE_BASE_DATA if s["state"] == state_name)
                 generated_districts = get_districts_for_state(state_name, state_data["electricity_consumption"], state_data["factor"])
                 for dist_obj in generated_districts:
-                    if dist_obj["name"].lower() in turn_content:
-                        resolved_location = {
+                    dist_lower = dist_obj["name"].lower()
+                    if re.search(r'\b' + re.escape(dist_lower) + r'\b', turn_content):
+                        loc_obj = {
                             "type": "district",
                             "name": dist_obj["name"],
                             "parent_state": state_name,
                             "state_avg": state_data["electricity_consumption"],
                             "data": dist_obj
                         }
-                        break
-                if resolved_location:
-                    break
-            if resolved_location:
-                break
-
+                        if not any(l["name"] == dist_obj["name"] for l in resolved_locations):
+                            resolved_locations.append(loc_obj)
+                            
             # Match states in previous turns
             for state_data in STATE_BASE_DATA:
-                if state_data["state"].lower() in turn_content:
-                    resolved_location = {"type": "state", "name": state_data["state"], "data": state_data}
-                    break
-            if resolved_location:
+                state_lower = state_data["state"].lower()
+                if re.search(r'\b' + re.escape(state_lower) + r'\b', turn_content):
+                    loc_obj = {"type": "state", "name": state_data["state"], "data": state_data}
+                    if not any(l["name"] == state_data["state"] for l in resolved_locations):
+                        resolved_locations.append(loc_obj)
+                        
+            if resolved_locations:
                 break
                 
             # Match household in previous turns
@@ -321,8 +323,8 @@ def simulate_cortex_response(msg: str, conversation_history: list = None):
                     break 
 
     # Resolve pronoun location if no explicit location matches
-    if not found_locations and has_context_ref and resolved_location:
-        found_locations.append(resolved_location)
+    if not found_locations and has_context_ref and resolved_locations:
+        found_locations = list(resolved_locations)
 
     # Determine household ID
     household_id = "HH_001"
@@ -417,53 +419,48 @@ def simulate_cortex_response(msg: str, conversation_history: list = None):
             }
 
     # INTENT D: Optimization & Advice
-    is_optim = contains_word(["optimize", "reduction", "reduce", "lower", "decrease", "saving", "tips", "solar", "renewable", "audit", "cleaner"])
+    is_more = contains_word(["more", "details", "elaborate", "continue"])
+    is_optim = contains_word(["optimize", "reduction", "reduce", "lower", "decrease", "saving", "tips", "solar", "renewable", "audit", "cleaner"]) or (is_more and len(found_locations) > 0)
     if is_optim:
         if found_locations:
-            loc = found_locations[0]
-            name = loc["name"]
-            elec = loc["data"]["electricity_consumption"]
-            factor = loc["data"].get("factor", loc["data"].get("carbon_emission", 0) / max(elec, 1))
+            advices = []
+            for loc in found_locations:
+                name = loc["name"]
+                elec = loc["data"]["electricity_consumption"]
+                factor = loc["data"].get("factor", loc["data"].get("carbon_emission", 0) / max(elec, 1))
+                
+                is_high_cons = elec > 1500.0
+                is_high_emiss = factor >= 0.8
+                
+                if is_high_cons and is_high_emiss:
+                    advice = (
+                        f"**{name}** exhibits **High consumption** ({elec} kWh) and relies on a **carbon-heavy/coal-heavy grid** (~{factor:.2f} kg CO2/kWh).\n"
+                        f"- **Solar rooftop panels**: shift high loads (EV charging) off-peak.\n"
+                        f"- **HVAC Audits**: replace outdated equipment with star-rated efficiency models."
+                    )
+                elif is_high_cons and not is_high_emiss:
+                    advice = (
+                        f"**{name}** has **High consumption** ({elec} kWh) but is serviced by a relatively **Clean energy grid** (~{factor:.2f} kg CO2/kWh).\n"
+                        f"- **Vampire loads mitigation**: install smart plugs to cut standby losses.\n"
+                        f"- **Load Scheduling**: automate heating/cooling units."
+                    )
+                elif not is_high_cons and is_high_emiss:
+                    advice = (
+                        f"**{name}** exhibits **Moderate consumption** ({elec} kWh) but relies on a **carbon-intense grid mix** (~{factor:.2f} kg CO2/kWh).\n"
+                        f"- **Clean energy alternatives**: advocate for solar/wind utility programs or install local panels."
+                    )
+                else:
+                    advice = (
+                        f"**{name}** is a model **Low-Consumption and Clean-Energy region**!\n"
+                        f"- **Habit retention**: maintain current energy conservation patterns."
+                    )
+                advices.append(advice)
             
-            # Optimization Advice Logic based on region metrics (Part 4)
-            is_high_cons = elec > 1500.0
-            is_high_emiss = factor >= 0.8
-            
-            if is_high_cons and is_high_emiss:
-                advice = (
-                    f"### 💡 Optimization Advice: {name}\n\n"
-                    f"Based on EcoWatt telemetry, **{name}** exhibits **High consumption** ({elec} kWh) and relies on a **carbon-heavy/coal-heavy grid** (~{factor:.2f} kg CO2/kWh).\n\n"
-                    f"**Recommended Actions:**\n"
-                    f"1. **Rooftop Solar Panels**: Transition to microgrid solar systems to offset high carbon grid intensity.\n"
-                    f"2. **HVAC & Cooling Audits**: Swap outdated cooling/heating loads with Star-labeled efficient appliances.\n"
-                    f"3. **Peak Shaving**: Restrict high-load activities (water pumping, EV charging) between 6:00 PM and 10:00 PM."
-                )
-            elif is_high_cons and not is_high_emiss:
-                advice = (
-                    f"### 💡 Optimization Advice: {name}\n\n"
-                    f"Based on EcoWatt telemetry, **{name}** has **High consumption** ({elec} kWh) but is serviced by a relatively **Clean energy grid** (~{factor:.2f} kg CO2/kWh).\n\n"
-                    f"**Recommended Actions:**\n"
-                    f"1. **Vampire Load Isolation**: Install smart plugs to monitor and cut off standby losses from idle appliances.\n"
-                    f"2. **Smart Metering**: Use home automation triggers to manage large domestic loads.\n"
-                    f"3. **Energy Efficiency Upgrades**: Retrofit fixtures with modern LED lighting."
-                )
-            elif not is_high_cons and is_high_emiss:
-                advice = (
-                    f"### 💡 Optimization Advice: {name}\n\n"
-                    f"Based on EcoWatt telemetry, **{name}** exhibits **Moderate consumption** ({elec} kWh) but is bound to a **carbon-intense grid mix** (~{factor:.2f} kg CO2/kWh).\n\n"
-                    f"**Recommended Actions:**\n"
-                    f"1. **Clean Generation Alternatives**: Advocate for green-energy utility contracts or invest in solar assets.\n"
-                    f"2. **Maintain Load Baseline**: Conserve usage during carbon peak hours (thermal generation backup windows)."
-                )
-            else:
-                advice = (
-                    f"### 💡 Optimization Advice: {name}\n\n"
-                    f"Based on EcoWatt telemetry, **{name}** is a model **Low-Consumption and Clean-Energy region**!\n\n"
-                    f"**Recommended Actions:**\n"
-                    f"1. **Habit Retention**: Continue current electricity conservation patterns.\n"
-                    f"2. **Microgrid Sharing**: Explore peer-to-peer energy sharing options."
-                )
-            return {"status": "success", "message": advice}
+            bullet_advices = "\n\n".join([f"### 💡 Optimization Advice: {loc['name']}\n{advices[idx]}" for idx, loc in enumerate(found_locations)])
+            return {
+                "status": "success",
+                "message": bullet_advices
+            }
         else:
             return {
                 "status": "success",
