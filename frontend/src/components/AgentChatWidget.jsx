@@ -13,6 +13,7 @@ export default function AgentChatWidget() {
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorText, setErrorText] = useState(null);
   const messagesEndRef = useRef(null);
 
   const cardBg = isDarkMode ? '#0f172a' : '#FFFFFF';
@@ -29,18 +30,22 @@ export default function AgentChatWidget() {
     "Average usage in Greenwood Sector A"
   ];
 
-  // Auto-scroll to bottom of messages
+  // Auto-scroll to bottom of messages with safety check
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current && typeof messagesEndRef.current.scrollIntoView === 'function') {
+      try {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      } catch (err) {
+        console.error("scrollIntoView error ignored:", err);
+      }
     }
   }, [messages, loading]);
 
   const handleSend = async (textToSend) => {
     const query = textToSend || input;
-    if (!query.trim()) return;
+    if (!query || !query.trim()) return;
 
-    // Append user message
+    setErrorText(null);
     const userMsg = { role: 'user', content: query };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
@@ -57,7 +62,7 @@ export default function AgentChatWidget() {
       });
 
       if (!response.ok) {
-        throw new Error("Chat request failed.");
+        throw new Error(`Server returned HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -68,8 +73,9 @@ export default function AgentChatWidget() {
         setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ Error: ${data.message || 'Unknown agent execution failure.'}` }]);
       }
     } catch (e) {
-      console.error(e);
-      setMessages(prev => [...prev, { role: 'assistant', content: '❌ Connection failed. Please ensure the backend server is running.' }]);
+      console.error("Agent chat failed:", e);
+      setErrorText(e.message || String(e));
+      setMessages(prev => [...prev, { role: 'assistant', content: `❌ Connection failed: ${e.message || String(e)}. Please ensure the backend server is running.` }]);
     } finally {
       setLoading(false);
     }
@@ -140,11 +146,15 @@ export default function AgentChatWidget() {
           <tbody>
             {tableData.rows.map((row, rIdx) => (
               <tr key={rIdx} style={{ borderBottom: rIdx < tableData.rows.length - 1 ? `1px solid ${cardBorder}` : 'none' }}>
-                {row.map((cell, cIdx) => (
-                  <td key={cIdx} style={{ padding: '6px 8px', color: textBotColor, fontWeight: cell.startsWith('**') ? 800 : 500 }}>
-                    {cell.replace(/\*\*/g, '')}
-                  </td>
-                ))}
+                {row.map((cell, cIdx) => {
+                  const cellStr = cell ? String(cell) : '';
+                  const isBold = cellStr.startsWith('**');
+                  return (
+                    <td key={cIdx} style={{ padding: '6px 8px', color: textBotColor, fontWeight: isBold ? 800 : 500 }}>
+                      {cellStr.replace(/\*\*/g, '')}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
