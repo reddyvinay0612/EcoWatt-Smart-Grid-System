@@ -10,7 +10,7 @@ load_dotenv()
 SNOWFLAKE_ACCOUNT_URL = os.getenv("SNOWFLAKE_ACCOUNT_URL", "")
 SNOWFLAKE_TOKEN = os.getenv("SNOWFLAKE_PAT_TOKEN", "")
 
-# 1. Base data matching stateData.js baseline values
+# Base data matching stateData.js baseline values
 STATE_BASE_DATA = [
   {"state": "Andaman and Nicobar Islands", "electricity_consumption": 900.0, "carbon_emission": 810.0, "factor": 0.90},
   {"state": "Andhra Pradesh", "electricity_consumption": 2299.25, "carbon_emission": 1954.36, "factor": 0.85},
@@ -54,7 +54,6 @@ STATE_BASE_DATA = [
 NATIONAL_AVG = 1390.0
 NATIONAL_CARBON_AVG = 1140.0
 
-# 2. Database of real district names for Indian states
 REAL_DISTRICT_NAMES = {
   "Andaman and Nicobar Islands": ["Port Blair", "Car Nicobar", "Mayabunder", "Havelock"],
   "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore", "Tirupati", "Kurnool", "Anantapur", "Eluru", "Kadapa", "Kakinada"],
@@ -131,7 +130,7 @@ def query_cortex_agent(user_message: str, conversation_history: list = None):
     # Check if credentials are set (must send FULL user message to Snowflake)
     if not SNOWFLAKE_ACCOUNT_URL or not SNOWFLAKE_TOKEN or "MOCK" in SNOWFLAKE_TOKEN:
         print("\n[CORTEX AGENT SIMULATION] (Credentials missing/mock)")
-        return simulate_cortex_response(user_message)
+        return simulate_cortex_response(user_message, conversation_history)
         
     headers = {
         "Authorization": f"Bearer {SNOWFLAKE_TOKEN}",
@@ -182,13 +181,15 @@ def query_cortex_agent(user_message: str, conversation_history: list = None):
             "message": f"Error calling Cortex Agent: {str(e)}. Falling back to local simulation."
         }
 
-def simulate_cortex_response(msg: str):
+def simulate_cortex_response(msg: str, conversation_history: list = None):
     """
     High-fidelity semantic simulation matching the ECOWATT_USAGE_VIEW semantic structure.
-    Correctly parses query intents, extracts entities, and queries real underlying data.
+    Correctly parses query intents, extracts entities, maintains conversational memory
+    to resolve pronouns/references, and queries real underlying data.
     """
     import re
     msg_lower = msg.lower()
+    
     # Common Indian location spelling aliases and standardizations
     COMMON_LOCATION_ALIASES = {
         "bangalore": "bengaluru urban",
@@ -209,12 +210,60 @@ def simulate_cortex_response(msg: str):
         msg_lower = re.sub(pattern, standard, msg_lower)
 
     # Word boundary checker helper to prevent substring matching bugs (e.g. matching "min" in "minister")
-    def contains_word(words_list):
+    def contains_word(words_list, text_to_check=msg_lower):
         for word in words_list:
             pattern = r'\b' + re.escape(word) + r'\b'
-            if re.search(pattern, msg_lower):
+            if re.search(pattern, text_to_check):
                 return True
         return False
+
+    # ----------------------------------------------------
+    # 0. PRONOUN & CONVERSATION HISTORY RESOLUTION (Memory)
+    # ----------------------------------------------------
+    resolved_location = None
+    resolved_household = None
+    
+    context_keywords = ["it", "that", "this", "its", "those", "them", "district", "state", "household", "spike"]
+    has_context_ref = contains_word(context_keywords)
+    
+    if has_context_ref and conversation_history:
+        for turn in reversed(conversation_history):
+            turn_content = turn.get("content", "").lower()
+            
+            # Match districts in previous turns (more specific than states)
+            for state_name, districts in REAL_DISTRICT_NAMES.items():
+                state_data = next(s for s in STATE_BASE_DATA if s["state"] == state_name)
+                generated_districts = get_districts_for_state(state_name, state_data["electricity_consumption"], state_data["factor"])
+                for dist_obj in generated_districts:
+                    if dist_obj["name"].lower() in turn_content:
+                        resolved_location = {
+                            "type": "district",
+                            "name": dist_obj["name"],
+                            "parent_state": state_name,
+                            "state_avg": state_data["electricity_consumption"],
+                            "data": dist_obj
+                        }
+                        break
+                if resolved_location:
+                    break
+            if resolved_location:
+                break
+
+            # Match states in previous turns
+            for state_data in STATE_BASE_DATA:
+                if state_data["state"].lower() in turn_content:
+                    resolved_location = {"type": "state", "name": state_data["state"], "data": state_data}
+                    break
+            if resolved_location:
+                break
+                
+            # Match household in previous turns
+            for hh_id in ["HH_001", "HH_002", "HH_003"]:
+                if hh_id.lower() in turn_content or f"household {hh_id[-1]}" in turn_content:
+                    resolved_household = hh_id
+                    break
+            if resolved_household:
+                break
 
     # ----------------------------------------------------
     # 1. ENTITY EXTRACTION (Fuzzy and Substring Matches)
@@ -243,9 +292,8 @@ def simulate_cortex_response(msg: str):
                         "data": dist_obj
                     })
 
-    # If no substring matches, fuzzy-match using difflib
+    # If no substring matches, fuzzy-match using difflib (cutoff 0.8 for high precision)
     if not found_locations:
-        # Build candidate corpus
         corpus = {}
         for state_data in STATE_BASE_DATA:
             corpus[state_data["state"].lower()] = {"type": "state", "name": state_data["state"], "data": state_data}
@@ -262,24 +310,172 @@ def simulate_cortex_response(msg: str):
                     "data": dist_obj
                 }
 
-        # Check entire query or individual words (len > 4) against corpus keys
+        # Check individual words (len > 4) against corpus keys
         words = [w.strip("?,.! ") for w in msg_lower.split() if len(w.strip("?,.! ")) > 4]
         for word in words:
-            matches = difflib.get_close_matches(word, corpus.keys(), n=1, cutoff=0.6)
+            matches = difflib.get_close_matches(word, corpus.keys(), n=1, cutoff=0.8)
             if matches:
                 matched_key = matches[0]
                 if not any(l["name"] == corpus[matched_key]["name"] for l in found_locations):
                     found_locations.append(corpus[matched_key])
-                    break # prioritize first matched location
+                    break 
 
-    # Extract metric context
+    # Resolve pronoun location if no explicit location matches
+    if not found_locations and has_context_ref and resolved_location:
+        found_locations.append(resolved_location)
+
+    # Determine household ID
+    household_id = "HH_001"
+    if "hh_002" in msg_lower or "household 2" in msg_lower or "household_2" in msg_lower:
+        household_id = "HH_002"
+    elif "hh_003" in msg_lower or "household 3" in msg_lower or "household_3" in msg_lower:
+        household_id = "HH_003"
+    elif has_context_ref and resolved_household:
+        household_id = resolved_household
+
     is_carbon = contains_word(["carbon", "emission", "co2", "footprint", "greenhouse"])
 
     # ----------------------------------------------------
-    # 2. INTENT RESOLUTION
+    # 2. INTENT RESOLUTION & RESPONSE COMPILATION (Reordered to avoid overlaps)
     # ----------------------------------------------------
     
-    # CASE A: Comparison Intent
+    # INTENT A0: Greetings
+    is_greeting = contains_word(["hello", "hi", "hey", "greetings", "yo", "greeting"])
+    if is_greeting:
+        return {
+            "status": "success",
+            "message": "Hello! I am your **EcoWatt AI assistant**, connected to Snowflake Cortex. How can I help you with electricity consumption, carbon emissions, or dashboard navigation today?"
+        }
+
+    # INTENT A1: Greenwood Sector Report
+    is_sector_report = contains_word(["greenwood", "sector", "baseline"])
+    if is_sector_report:
+        return {
+            "status": "success",
+            "message": "### 📊 Greenwood Sector A Baseline Report\n\n"
+                       "Query results from the `ECOWATT_USAGE_VIEW` database show average monthly consumption over the past 6 months:\n\n"
+                       "| Household ID | Resident Name | 6-Month Baseline Avg | Min Consumption | Max Consumption |\n"
+                       "| :--- | :--- | :--- | :--- | :--- |\n"
+                       "| **HH_001** | Greenwood Unit 1 | 202.3 kWh | 195.0 kWh | 260.0 kWh |\n"
+                       "| **HH_002** | Greenwood Unit 2 | 351.2 kWh | 340.0 kWh | 360.0 kWh |\n"
+                       "| **HH_003** | Greenwood Unit 3 | 277.6 kWh | 268.0 kWh | 365.0 kWh |\n\n"
+                       "The overall sectoral average is **277.03 kWh per month** per household unit."
+        }
+
+    # INTENT A: App/Dashboard Help (Check first to avoid overlaps with metrics in trend/navigation queries)
+    is_help = contains_word(["where", "how do i", "how do we", "how to see", "alerts", "profile", "add household", "navigation", "dashboard"])
+    if is_help:
+        return {
+            "status": "success",
+            "message": "### 🧭 EcoWatt Dashboard Navigation Help\n\n"
+                       "Here is how to locate features on your dashboard:\n\n"
+                       "- **See Past 6 Months Usage**: Click the **Residential Monitor** on the left menu. Choose your household ID from the dropdown, and see the monthly history bar chart.\n"
+                       "- **Check Anomaly Alerts**: Click the **Notification Bell** in the top navigation bar, or check the alert list on the Residential Monitor page.\n"
+                       "- **Modify Profile/Password**: Click the **Profile** tab in the left sidebar menu.\n"
+                       "- **Add a Household Node**: Navigate to the **Residential Monitor** page and click **Add Household** in the upper action panel."
+        }
+
+    # INTENT B: General EcoWatt Info
+    is_info = contains_word(["what does", "ecowatt", "accuracy", "predictions", "what data"])
+    if is_info:
+        return {
+            "status": "success",
+            "message": "### ⚡ About EcoWatt AI\n\n"
+                       "**EcoWatt AI** is a smart grid residential electricity monitoring and forecasting system:\n\n"
+                       "- **Deep Learning Predictor**: Uses a hybrid **CNN-LSTM network** to forecast future loads 24 hours in advance, achieving an **R² accuracy of 92.4%**.\n"
+                       "- **Telemetry Data**: Collects live consumption (kWh), carbon footprint (kg CO2), and regional environmental factors.\n"
+                       "- **Anomaly Detection**: Flags sudden spikes that exceed historical baseline usage by 20% or more."
+        }
+
+    # INTENT C: Educational & Definitional
+    is_def = contains_word(["per capita", "carbon emission", "definition", "define", "what causes", "good kwh usage", "meaning of", "explain"])
+    if is_def:
+        if "per capita" in msg_lower:
+            return {
+                "status": "success",
+                "message": "### 📖 Concept Definition: Per Capita Electricity Consumption\n\n"
+                           "**Per capita electricity consumption** is a metric representing the average electricity consumed per resident in a region over a year. \n\n"
+                           "- **Formula**: `Total regional electricity supply / Total population`\n"
+                           "- **National Status**: In India, the average per capita consumption is around **1,255 kWh** per year. In the EcoWatt AI platform, we track this benchmark against simulated regional loads to isolate efficiency opportunities."
+            }
+        elif "carbon" in msg_lower or "co2" in msg_lower or "emission" in msg_lower:
+            return {
+                "status": "success",
+                "message": "### 📖 Educational: What is Carbon Emission Footprint?\n\n"
+                           "Carbon footprint is the total volume of greenhouse gases (mainly CO2) emitted by generating the electricity consumed by households.\n\n"
+                           "- **Calculation**: `Electricity Consumption (kWh) * Grid Emission Factor`\n"
+                           "- **Grid Factors**: Coal-heavy grids have high factors (~0.95 kg/kWh), whereas renewable-rich grids like Karnataka have lower factors (~0.50 kg/kWh)."
+            }
+        else:
+            return {
+                "status": "success",
+                "message": "### 📖 Educational: Household kWh Baselines\n\n"
+                           "A standard residential household in India typically consumes between **150 kWh to 350 kWh** monthly.\n\n"
+                           "- **Low usage (< 150 kWh)**: Lighting, fans, basic appliances (no air conditioning).\n"
+                           "- **Average usage (150–300 kWh)**: Regular usage of refrigerators, televisions, and occasional AC.\n"
+                           "- **High usage (> 350 kWh)**: Frequent air conditioning, space heaters, or EV charging."
+            }
+
+    # INTENT D: Optimization & Advice
+    is_optim = contains_word(["optimize", "reduction", "reduce", "lower", "decrease", "saving", "tips", "solar", "renewable", "audit", "cleaner"])
+    if is_optim:
+        if found_locations:
+            loc = found_locations[0]
+            name = loc["name"]
+            elec = loc["data"]["electricity_consumption"]
+            factor = loc["data"].get("factor", loc["data"].get("carbon_emission", 0) / max(elec, 1))
+            
+            # Optimization Advice Logic based on region metrics (Part 4)
+            is_high_cons = elec > 1500.0
+            is_high_emiss = factor >= 0.8
+            
+            if is_high_cons and is_high_emiss:
+                advice = (
+                    f"### 💡 Optimization Advice: {name}\n\n"
+                    f"Based on EcoWatt telemetry, **{name}** exhibits **High consumption** ({elec} kWh) and relies on a **carbon-heavy/coal-heavy grid** (~{factor:.2f} kg CO2/kWh).\n\n"
+                    f"**Recommended Actions:**\n"
+                    f"1. **Rooftop Solar Panels**: Transition to microgrid solar systems to offset high carbon grid intensity.\n"
+                    f"2. **HVAC & Cooling Audits**: Swap outdated cooling/heating loads with Star-labeled efficient appliances.\n"
+                    f"3. **Peak Shaving**: Restrict high-load activities (water pumping, EV charging) between 6:00 PM and 10:00 PM."
+                )
+            elif is_high_cons and not is_high_emiss:
+                advice = (
+                    f"### 💡 Optimization Advice: {name}\n\n"
+                    f"Based on EcoWatt telemetry, **{name}** has **High consumption** ({elec} kWh) but is serviced by a relatively **Clean energy grid** (~{factor:.2f} kg CO2/kWh).\n\n"
+                    f"**Recommended Actions:**\n"
+                    f"1. **Vampire Load Isolation**: Install smart plugs to monitor and cut off standby losses from idle appliances.\n"
+                    f"2. **Smart Metering**: Use home automation triggers to manage large domestic loads.\n"
+                    f"3. **Energy Efficiency Upgrades**: Retrofit fixtures with modern LED lighting."
+                )
+            elif not is_high_cons and is_high_emiss:
+                advice = (
+                    f"### 💡 Optimization Advice: {name}\n\n"
+                    f"Based on EcoWatt telemetry, **{name}** exhibits **Moderate consumption** ({elec} kWh) but is bound to a **carbon-intense grid mix** (~{factor:.2f} kg CO2/kWh).\n\n"
+                    f"**Recommended Actions:**\n"
+                    f"1. **Clean Generation Alternatives**: Advocate for green-energy utility contracts or invest in solar assets.\n"
+                    f"2. **Maintain Load Baseline**: Conserve usage during carbon peak hours (thermal generation backup windows)."
+                )
+            else:
+                advice = (
+                    f"### 💡 Optimization Advice: {name}\n\n"
+                    f"Based on EcoWatt telemetry, **{name}** is a model **Low-Consumption and Clean-Energy region**!\n\n"
+                    f"**Recommended Actions:**\n"
+                    f"1. **Habit Retention**: Continue current electricity conservation patterns.\n"
+                    f"2. **Microgrid Sharing**: Explore peer-to-peer energy sharing options."
+                )
+            return {"status": "success", "message": advice}
+        else:
+            return {
+                "status": "success",
+                "message": "### 💡 EcoWatt Energy Saving Guide\n\n"
+                           "Here are top-tier actionable suggestions to optimize consumption and lower your electricity bills:\n\n"
+                           "1. **Peak Shaving**: Avoid running heavy appliances (washing machines, water heaters, water pumps) during peak grid hours (**6:00 PM to 10:00 PM**). Shift usage to off-peak periods.\n"
+                           "2. **Climate Control**: Set air conditioners to **24°C** or higher. Every 1°C increase saves up to 6% of electricity used for cooling.\n"
+                           "3. **Vampire Loads**: Unplug idle chargers, TV setups, and microwaves. Standby power accounts for up to **10%** of residential energy waste.\n"
+                           "4. **LED Retrofitting**: Replace legacy incandescent bulbs with star-labeled LEDs, reducing lighting electricity demand by **80%**."
+            }
+
+    # INTENT E: Comparison
     is_compare = contains_word(["compare", "comparison", "versus", "vs"]) or len(found_locations) >= 2
     if is_compare:
         if len(found_locations) < 2:
@@ -310,14 +506,13 @@ def simulate_cortex_response(msg: str):
                        f"| **Carbon Emission footprint** | {valCarbonA} kg CO2 | {valCarbonB} kg CO2 | {diffCarbon} kg |\n"
         }
 
-    # CASE B: Ranking/Extreme Value Intent
+    # INTENT F: Ranking
     is_ranking = contains_word(["highest", "lowest", "maximum", "minimum", "max", "min", "top", "bottom", "most", "least"])
     if is_ranking:
         is_lowest = contains_word(["lowest", "minimum", "min", "bottom", "least"])
         metric_name = "carbon_emission" if is_carbon else "electricity_consumption"
         metric_label = "Carbon Footprint (kg CO2)" if is_carbon else "Electricity Consumption (kWh)"
         
-        # Filter out extreme outliers like UTs for more realistic rankings
         filtered_states = [s for s in STATE_BASE_DATA if s["state"] not in ["Dadra and Nagar Haveli", "Daman and Diu"]]
         sorted_states = sorted(filtered_states, key=lambda x: x[metric_name], reverse=not is_lowest)
         top_states = sorted_states[:5]
@@ -335,31 +530,29 @@ def simulate_cortex_response(msg: str):
                        f"| :--- | :--- | :--- | :--- |\n" + "\n".join(rank_list)
         }
 
-    # CASE C: Anomaly Queries
-    is_anomaly = contains_word(["anomaly", "anomalous", "spike", "unusual", "irregular"])
+    # INTENT G: Anomaly Explanation (Includes "why is...", "why did...")
+    is_anomaly = contains_word(["anomaly", "anomalous", "spike", "unusual", "irregular"]) or "why is" in msg_lower or "why did" in msg_lower or "reason for" in msg_lower
     if is_anomaly:
+        hh_info = ""
+        if resolved_household == "HH_001" or resolved_household == "HH_003" or household_id in ["HH_001", "HH_003"]:
+            hh_target = resolved_household if resolved_household else household_id
+            hh_val = "260.0 kWh (+28.7%)" if hh_target == "HH_001" else "365.0 kWh (+31.5%)"
+            hh_info = f"\nFor household **{hh_target}**, telemetry recorded a usage of **{hh_val}** in July 2026, triggering an alert.\n"
+            
         return {
             "status": "success",
-            "message": "### 🚨 Anomaly Detection Summary (`ECOWATT_USAGE_VIEW`)\n\n"
-                       "According to database records, two households in your active sector have flagged anomalies last month (July 2026):\n\n"
-                       "| Household ID | Household Name | Month | Units Consumed (kWh) | Deviation vs Avg | Status |\n"
-                       "| :--- | :--- | :--- | :--- | :--- | :--- |\n"
-                       "| **HH_001** | Greenwood Residential Unit 1 | 2026-07 | 260.0 | +28.7% | Flagged Spike |\n"
-                       "| **HH_003** | Greenwood Residential Unit 3 | 2026-07 | 365.0 | +31.5% | Flagged Spike |\n\n"
-                       "- **Threshold Trigger**: The anomaly system is currently set to alert you when consumption exceeds your 6-month historical baseline by more than **20%**.\n"
-                       "- **Action Plan**: Review your appliance usage during peak hours or inspect for vampire loads."
+            "message": "### 🚨 Anomaly & Usage Spikes Explanation\n\n"
+                       "An anomaly is flagged when a household's monthly electricity consumption exceeds its 6-month historical baseline by more than **20%**.\n"
+                       f"{hh_info}\n"
+                       "**Common Causes of Spikes:**\n"
+                       "1. **Heavy Thermal Loads**: Continuous operation of A/Cs, space heaters, or hot water geysers.\n"
+                       "2. **Vampire Loads**: Running high-drain appliances during peak demand periods.\n"
+                       "3. **Meter Recalibration / Telemetry Faults**: Temporary sensor transmission errors in the smart meter node."
         }
 
-    # CASE D: Trend Queries for Household or Monitored Nodes
-    is_trend = contains_word(["trend", "history", "months", "month", "past", "last", "tracker"]) or "hh_" in msg_lower or "household" in msg_lower
+    # INTENT H: Trend & History queries
+    is_trend = contains_word(["trend", "history", "months", "month", "past", "last", "tracker", "log", "logs"])
     if is_trend:
-        # Determine household ID
-        household_id = "HH_001"
-        if "hh_002" in msg_lower or "household 2" in msg_lower or "household_2" in msg_lower:
-            household_id = "HH_002"
-        elif "hh_003" in msg_lower or "household 3" in msg_lower or "household_3" in msg_lower:
-            household_id = "HH_003"
-            
         histories = {
             "HH_001": [
                 {"month": "2026-02", "units": 195, "status": "Normal", "change": "-"},
@@ -386,7 +579,6 @@ def simulate_cortex_response(msg: str):
                 {"month": "2026-07", "units": 365, "status": "**Spike Detected**", "change": "+31.5%"}
             ]
         }
-        
         hist_rows = [f"| {h['month']} | {h['units']} kWh | {h['status']} | {h['change']} |" for h in histories[household_id]]
         return {
             "status": "success",
@@ -396,18 +588,15 @@ def simulate_cortex_response(msg: str):
                        f"| :--- | :--- | :--- | :--- |\n" + "\n".join(hist_rows)
         }
 
-    # CASE E: Single Location Data-Backed Lookup
+    # INTENT I: Single Location Data-Backed Lookup (Exact lookup)
     if len(found_locations) == 1:
         loc = found_locations[0]
         if loc["type"] == "state":
             elec_val = loc["data"]["electricity_consumption"]
             carbon_val = loc["data"]["carbon_emission"]
             factor = loc["data"]["factor"]
-            
-            # Compare state average to national average
             diff_pct = round(((elec_val - NATIONAL_AVG) / NATIONAL_AVG) * 100, 1)
             direction = "above" if diff_pct >= 0 else "below"
-            
             return {
                 "status": "success",
                 "message": f"### 📊 Energy Statistics: {loc['name']}\n\n"
@@ -419,11 +608,8 @@ def simulate_cortex_response(msg: str):
             elec_val = loc["data"]["electricity_consumption"]
             carbon_val = loc["data"]["carbon_emission"]
             state_avg = loc["state_avg"]
-            
-            # Compare district consumption to parent state average
             diff_pct = round(((elec_val - state_avg) / state_avg) * 100, 1)
             direction = "above" if diff_pct >= 0 else "below"
-            
             return {
                 "status": "success",
                 "message": f"### 📍 Regional Telemetry: {loc['name']} ({loc['parent_state']})\n\n"
@@ -431,29 +617,6 @@ def simulate_cortex_response(msg: str):
                            f"- **Electricity Consumption**: **{elec_val} kWh** monthly per household. This is **{abs(diff_pct)}% {direction}** the state average for {loc['parent_state']} ({state_avg} kWh).\n"
                            f"- **Carbon Emissions**: **{carbon_val} kg CO2** monthly per household node."
             }
-
-    # CASE F: General Definitions & Energy Saving Advice
-    is_saving = contains_word(["save", "reduce", "bill", "tips", "efficiency"])
-    if is_saving:
-        return {
-            "status": "success",
-            "message": "### 💡 EcoWatt Energy Saving Guide\n\n"
-                       "Here are top-tier actionable suggestions to optimize consumption and lower your electricity bills:\n\n"
-                       "1. **Peak Shaving**: Avoid running heavy appliances (washing machines, water heaters, water pumps) during peak grid hours (**6:00 PM to 10:00 PM**). Shift usage to off-peak periods.\n"
-                       "2. **Climate Control**: Set air conditioners to **24°C** or higher. Every 1°C increase saves up to 6% of electricity used for cooling.\n"
-                       "3. **Vampire Loads**: Unplug idle chargers, TV setups, and microwaves. Standby power accounts for up to **10%** of residential energy waste.\n"
-                       "4. **LED Retrofitting**: Replace legacy incandescent bulbs with star-labeled LEDs, reducing lighting electricity demand by **80%**."
-        }
-        
-    is_definitional = contains_word(["per capita", "meaning", "definition"])
-    if is_definitional:
-        return {
-            "status": "success",
-            "message": "### 📖 Concept Definition: Per Capita Electricity Consumption\n\n"
-                       "**Per capita electricity consumption** is a metric representing the average electricity consumed per resident in a region over a year. \n\n"
-                       "- **Formula**: `Total regional electricity supply / Total population`\n"
-                       "- **National Status**: In India, the average per capita consumption is around **1,255 kWh** per year. In the EcoWatt AI platform, we track this benchmark against simulated regional loads to isolate efficiency opportunities."
-        }
 
     # CASE G: Out-of-Scope Fallback (Triggered as last resort)
     print(f"[FALLBACK TRIGGERED] User Query: '{msg}'")
