@@ -188,6 +188,7 @@ def simulate_cortex_response(msg: str):
     Correctly parses query intents, extracts entities, and queries real underlying data.
     """
     import re
+    msg_lower = msg.lower()
     # Common Indian location spelling aliases and standardizations
     COMMON_LOCATION_ALIASES = {
         "bangalore": "bengaluru urban",
