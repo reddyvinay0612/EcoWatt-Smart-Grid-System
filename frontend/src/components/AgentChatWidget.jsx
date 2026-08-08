@@ -19,6 +19,7 @@ export default function AgentChatWidget() {
   const cardBg = isDarkMode ? '#0f172a' : '#FFFFFF';
   const cardBorder = isDarkMode ? 'rgba(255,255,255,0.08)' : '#E2E8F0';
   const titleColor = isDarkMode ? '#FFFFFF' : '#0F172A';
+  const labelColor = isDarkMode ? '#94A3B8' : '#475569';
   const bubbleUserBg = '#3B82F6';
   const bubbleBotBg = isDarkMode ? '#1e293b' : '#F1F5F9';
   const textUserColor = '#FFFFFF';
