@@ -11,6 +11,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from data_pipeline import create_sequences, preprocess_pipeline
 from model import CnnLstmModel, load_pytorch_model, device
 from app.alert_service import send_email_alert, send_sms_alert, create_in_app_notification
+from app.snowflake_agent import query_cortex_agent
 
 app = FastAPI(title="EcoWatt AI - Residential Energy Monitoring & Forecasting API")
 
@@ -585,6 +586,17 @@ def update_settings(household_id: str, settings: dict):
     """
     save_user_settings(household_id, settings)
     return {"status": "Success", "settings": settings}
+
+@app.post("/api/v1/agent-chat")
+def agent_chat(request: dict):
+    """
+    Interfaces with the Snowflake Cortex AI Agent.
+    """
+    user_message = request.get("message")
+    history = request.get("history", [])
+    if not user_message:
+        raise HTTPException(status_code=400, detail="Missing message parameter.")
+    return query_cortex_agent(user_message, history)
 
 if __name__ == "__main__":
     import uvicorn

@@ -15,6 +15,7 @@ import ModelComparisonPanel  from './components/ModelComparisonPanel';
 import HouseholdSelector     from './components/HouseholdSelector';
 import AlertsPanel           from './components/AlertsPanel';
 import MonthlyUsageHistory   from './components/MonthlyUsageHistory';
+import AgentChatWidget       from './components/AgentChatWidget';
 
 import { useAuth }          from './context/AuthContext';
 import { useTheme }         from './context/ThemeContext';
@@ -244,6 +245,9 @@ function App() {
           </main>
         </div>
       </div>
+
+      {/* Floating Snowflake Cortex Assistant */}
+      <AgentChatWidget />
     </div>
   );
 }

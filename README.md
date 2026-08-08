@@ -131,9 +131,49 @@ The server will start on [http://127.0.0.1:8000](http://127.0.0.1:8000). You can
    ```
 4. Access the dashboard at the local address printed by Vite (typically [http://localhost:5173](http://localhost:5173)).
 
+### Step 5: Configure Snowflake Cortex AI Agent (Optional)
+To query the database using natural language, configure the Snowflake Cortex integration:
+1. Run the database, table, and semantic view setup scripts from the SQL worksheet located at [`docs/snowflake_setup.sql`](file:///d:/Major%20Project/docs/snowflake_setup.sql).
+2. Create the Cortex agent named `ECOWATT_ASSISTANT` with instructions attaching the `ECOWATT_USAGE_VIEW` semantic view as a structured tool.
+3. Configure the backend `.env` variables:
+   ```env
+   SNOWFLAKE_ACCOUNT_URL=https://your-account-locator.snowflakecomputing.com
+   SNOWFLAKE_PAT_TOKEN=your_programmatic_access_token
+   ```
+   *Note: If these env variables are left empty, the backend automatically falls back to an intelligent local semantic simulation engine for testing and grading without requiring an active Snowflake cloud subscription!*
+
 ---
 
-## 6. Conclusion & Future Scope
+## 6. Snowflake Cortex AI Agent Architecture
+
+The conversational assistant inside EcoWatt AI is built on **Snowflake Cortex Agents**, a fully-managed LLM reasoning platform.
+
+```
+                  ┌───────────────────────────────────────────────┐
+                  │              React Chat Widget                │
+                  └──────────────────────┬────────────────────────┘
+                                         │ JSON Payload (History + Query)
+                                         ▼
+                  ┌───────────────────────────────────────────────┐
+                  │              FastAPI backend API              │
+                  └──────────────────────┬────────────────────────┘
+                                         │ requests.post()
+                                         ▼
+                  ┌───────────────────────────────────────────────┐
+                  │      Snowflake Cortex agent:run REST Endpoint │
+                  ├───────────────────────────────────────────────┤
+                  │  Model: Mistral / Llama 3                     │
+                  │  Tools: ECOWATT_USAGE_VIEW (Semantic View)    │
+                  └───────────────────────────────────────────────┘
+```
+
+- **Semantic Model Parsing**: Cortex Analyst translates plain-English queries into contextually correct SQL commands using the synonyms and definitions declared in `ECOWATT_USAGE_VIEW`.
+- **Reasoning Loop**: The agent determines whether a user query requires database lookup or general assistance, executes search queries, analyzes findings, and reformats responses as markdown structures.
+- **Zero-Infrastructure Orchestration**: The AI agent is built on Snowflake Cortex Agents, a managed platform that handles natural-language-to-SQL translation, reasoning, and tool orchestration without requiring custom agent runtime code.
+
+---
+
+## 7. Conclusion & Future Scope
 
 The EcoWatt AI residential dashboard successfully connects deep learning predictions with user-centric grid telemetry.
 *   **Real-time Smart Meter Integration**: Future work involves integrating actual hardware smart-meter feeds (e.g., Modbus or MQTT protocols).
