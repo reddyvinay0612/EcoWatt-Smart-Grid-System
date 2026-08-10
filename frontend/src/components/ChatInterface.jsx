@@ -198,21 +198,21 @@ export default function ChatInterface({ activeQuery, clearActiveQuery }) {
   };
 
   const renderTable = (tableData, key) => (
-    <div key={key} className="overflow-x-auto my-3 border border-slate-700/50 rounded-lg">
+    <div key={key} className="overflow-x-auto my-3 border border-slate-200 rounded-lg shadow-sm">
       <table className="w-full text-left text-xs border-collapse">
         <thead>
-          <tr className="bg-slate-800/40 border-b border-slate-700/50">
+          <tr className="bg-slate-100 border-b border-slate-200">
             {tableData.headers.map((h, i) => (
-              <th key={i} className="p-2.5 font-extrabold text-slate-400">{h}</th>
+              <th key={i} className="p-2.5 font-extrabold text-slate-700">{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {tableData.rows.map((row, rIdx) => (
-            <tr key={rIdx} className="border-b border-slate-700/30 last:border-b-0 hover:bg-slate-800/20">
+            <tr key={rIdx} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/50">
               {row.map((cell, cIdx) => (
-                <td key={cIdx} className="p-2.5 font-medium text-slate-300">
-                  {cell.startsWith('**') ? <strong>{cell.replace(/\*\*/g, '')}</strong> : cell}
+                <td key={cIdx} className="p-2.5 font-medium text-slate-800">
+                  {cell.startsWith('**') ? <strong className="text-slate-950 font-bold">{cell.replace(/\*\*/g, '')}</strong> : cell}
                 </td>
               ))}
             </tr>
@@ -224,7 +224,7 @@ export default function ChatInterface({ activeQuery, clearActiveQuery }) {
 
   const renderLine = (line, key) => {
     if (line.startsWith('### ')) {
-      return <h4 key={key} className="text-sm font-extrabold text-white mt-4 mb-2 flex items-center gap-1.5"><ChevronRight size={14} className="text-blue-500" /> {line.substring(4)}</h4>;
+      return <h4 key={key} className="text-xs font-extrabold text-slate-900 mt-4 mb-2 flex items-center gap-1.5"><ChevronRight size={13} className="text-emerald-500" /> {line.substring(4)}</h4>;
     }
     const isBullet = line.startsWith('- ') || line.startsWith('* ');
     const cleanedText = isBullet ? line.substring(2) : line;
@@ -233,20 +233,20 @@ export default function ChatInterface({ activeQuery, clearActiveQuery }) {
     const parts = cleanedText.split(/(\*\*.*?\*\*)/g);
     const content = parts.map((part, idx) => {
       if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={idx} className="text-white font-extrabold">{part.slice(2, -2)}</strong>;
+        return <strong key={idx} className="text-slate-950 font-extrabold">{part.slice(2, -2)}</strong>;
       }
       return part;
     });
 
     if (isBullet) {
       return (
-        <ul key={key} className="list-disc pl-5 my-1 text-slate-300">
+        <ul key={key} className="list-disc pl-5 my-0.5 text-slate-700">
           <li className="text-xs leading-relaxed">{content}</li>
         </ul>
       );
     }
 
-    return <p key={key} className="text-xs leading-relaxed text-slate-300 my-1">{content}</p>;
+    return <p key={key} className="text-xs leading-relaxed text-slate-700 my-0.5">{content}</p>;
   };
 
   const getToolIcon = (name) => {
