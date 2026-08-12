@@ -173,12 +173,12 @@ def query_cortex_agent(user_message: str, conversation_history: list = None):
         url = f"{SNOWFLAKE_ACCOUNT_URL.rstrip('/')}/api/v2/databases/{SNOWFLAKE_DB}/schemas/{SNOWFLAKE_SCHEMA}/agents/{SNOWFLAKE_AGENT}:run"
         response = requests.post(url, headers=headers, json=payload, timeout=20)
         
-        if response.status_code == 401:
-            return {
-                "status": "error",
-                "message": "Snowflake Authorization Failed (401). Please verify your Programmatic Access Token."
-            }
-        
+        if response.status_code in [401, 403, 404]:
+            print(f"[CORTEX AGENT HTTP {response.status_code}] Falling back to simulation (Trial account limit).")
+            sim_res = simulate_cortex_response(user_message, conversation_history)
+            sim_res["message"] = f"⚠️ *Note: Snowflake Cortex REST API returned HTTP {response.status_code} (Trial Tier Account restriction). Displaying simulated baseline database response:*\n\n" + sim_res.get("message", "")
+            return sim_res
+            
         response.raise_for_status()
         data = response.json()
         
@@ -195,16 +195,14 @@ def query_cortex_agent(user_message: str, conversation_history: list = None):
         return {"status": "success", "message": str(data)}
         
     except requests.exceptions.Timeout:
-        return {
-            "status": "error",
-            "message": "Connection to Snowflake Cortex agent timed out. Please check network routing."
-        }
+        sim_res = simulate_cortex_response(user_message, conversation_history)
+        sim_res["message"] = "⚠️ *Note: Connection to Snowflake Cortex agent timed out. Displaying simulated baseline database response:*\n\n" + sim_res.get("message", "")
+        return sim_res
     except Exception as e:
         print(f"Snowflake Cortex Agent API exception: {e}")
-        return {
-            "status": "error",
-            "message": f"Error calling Cortex Agent: {str(e)}. Falling back to local simulation."
-        }
+        sim_res = simulate_cortex_response(user_message, conversation_history)
+        sim_res["message"] = f"⚠️ *Note: Snowflake connection failed ({str(e)}). Displaying simulated baseline database response:*\n\n" + sim_res.get("message", "")
+        return sim_res
 
 def simulate_cortex_response(msg: str, conversation_history: list = None):
     """
