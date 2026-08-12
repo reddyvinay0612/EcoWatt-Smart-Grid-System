@@ -9,6 +9,9 @@ load_dotenv()
 
 SNOWFLAKE_ACCOUNT_URL = os.getenv("SNOWFLAKE_ACCOUNT_URL", "")
 SNOWFLAKE_TOKEN = os.getenv("SNOWFLAKE_PAT_TOKEN", "")
+SNOWFLAKE_DB = os.getenv("DATABASE", "ECOWATT_DB")
+SNOWFLAKE_SCHEMA = os.getenv("SCHEMA", "ANALYTICS")
+SNOWFLAKE_AGENT = os.getenv("AGENT_NAME", "ECOWATT_AI_AGENT")
 
 # Base data matching stateData.js baseline values
 STATE_BASE_DATA = [
@@ -137,15 +140,37 @@ def query_cortex_agent(user_message: str, conversation_history: list = None):
         "Content-Type": "application/json"
     }
     
+    # Format message objects according to the target REST schema structure:
+    # {"role": "...", "content": [{"type": "text", "text": "..."}]}
+    formatted_messages = []
+    if conversation_history:
+        for msg in conversation_history:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            if isinstance(content, list):
+                formatted_messages.append({
+                    "role": role,
+                    "content": content
+                })
+            else:
+                formatted_messages.append({
+                    "role": role,
+                    "content": [{"type": "text", "text": str(content)}]
+                })
+                
+    # Append the current prompt
+    formatted_messages.append({
+        "role": "user",
+        "content": [{"type": "text", "text": user_message}]
+    })
+    
     payload = {
-        "agent": "ECOWATT_ASSISTANT",
-        "messages": (conversation_history or []) + [
-            {"role": "user", "content": user_message}
-        ]
+        "messages": formatted_messages,
+        "stream": False
     }
     
     try:
-        url = f"{SNOWFLAKE_ACCOUNT_URL.rstrip('/')}/api/v2/cortex/agent:run"
+        url = f"{SNOWFLAKE_ACCOUNT_URL.rstrip('/')}/api/v2/databases/{SNOWFLAKE_DB}/schemas/{SNOWFLAKE_SCHEMA}/agents/{SNOWFLAKE_AGENT}:run"
         response = requests.post(url, headers=headers, json=payload, timeout=20)
         
         if response.status_code == 401:

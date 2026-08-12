@@ -91,11 +91,11 @@ CREATE OR REPLACE CORTEX SEARCH SERVICE ECOWATT_POLICY_SEARCH
 
 -- 6. Define Cortex Agent configuration (Represented here as SQL DDL configuration references)
 -- An Agent object coordinates Analyst views, Search services, and Python execution capabilities:
-/*
+
 CREATE OR REPLACE CORTEX AGENT ECOWATT_AI_AGENT
   MODEL = 'claude-3-5-sonnet'
   ANALYST_VIEWS = (ECOWATT_ENERGY_SEMANTIC_VIEW)
   SEARCH_SERVICES = (ECOWATT_POLICY_SEARCH)
   ENABLE_CODE_EXECUTION = TRUE
   INSTRUCTIONS = 'You are EcoWatts autonomous agent assistant. Help users query telemetry, search policy documents, and run computations.';
-*/
+  

@@ -2,7 +2,7 @@
   "HH_001": {
     "email_alerts": true,
     "sms_alerts": true,
-    "threshold_percent": 20,
+    "threshold_percent": 50,
     "email": "reddyvinayprakash@gmail.com",
     "phone": "+91 9916083095"
   },
