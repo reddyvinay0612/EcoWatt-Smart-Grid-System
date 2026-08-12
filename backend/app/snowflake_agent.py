@@ -441,9 +441,13 @@ def simulate_cortex_response(msg: str, conversation_history: list = None):
                            "- **High usage (> 350 kWh)**: Frequent air conditioning, space heaters, or EV charging."
             }
 
+    # INTENT G: Ranking
+    is_ranking = contains_word(["highest", "lowest", "maximum", "minimum", "max", "min", "top", "bottom", "most", "least", "rank", "ranking"]) or \
+                 (contains_word(["which", "who", "highest", "most", "more"]) and contains_word(["district", "state", "facility", "household", "consume", "electricity", "emission"]))
+
     # INTENT D: Optimization & Advice
     is_more = contains_word(["more", "details", "elaborate", "continue"])
-    is_optim = contains_word(["optimize", "reduction", "reduce", "lower", "decrease", "saving", "tips", "solar", "renewable", "audit", "cleaner"]) or (is_more and len(found_locations) > 0)
+    is_optim = (contains_word(["optimize", "reduction", "reduce", "lower", "decrease", "saving", "tips", "solar", "renewable", "audit", "cleaner"]) or (is_more and len(found_locations) > 0)) and not is_ranking
     if is_optim:
         if found_locations:
             advices = []
@@ -547,12 +551,38 @@ def simulate_cortex_response(msg: str, conversation_history: list = None):
         }
 
     # INTENT G: Ranking
-    is_ranking = contains_word(["highest", "lowest", "maximum", "minimum", "max", "min", "top", "bottom", "most", "least"])
     if is_ranking:
         is_lowest = contains_word(["lowest", "minimum", "min", "bottom", "least"])
         metric_name = "carbon_emission" if is_carbon else "electricity_consumption"
         metric_label = "Carbon Footprint (kg CO2)" if is_carbon else "Electricity Consumption (kWh)"
         
+        # Check if a state was specified in the query to rank districts
+        specified_state = None
+        for loc in found_locations:
+            if loc["type"] == "state":
+                specified_state = loc
+                break
+                
+        if specified_state:
+            state_name = specified_state["name"]
+            state_data = specified_state["data"]
+            districts = get_districts_for_state(state_name, state_data["electricity_consumption"], state_data["factor"])
+            sorted_districts = sorted(districts, key=lambda x: x[metric_name], reverse=not is_lowest)
+            
+            rank_list = []
+            for idx, d in enumerate(sorted_districts):
+                rank_list.append(f"| {idx+1} | {d['name']} | {d['electricity_consumption']} kWh | {d['carbon_emission']} kg CO2 |")
+                
+            direction_label = "Lowest" if is_lowest else "Highest"
+            return {
+                "status": "success",
+                "message": f"### 📊 Regional Ranking: {direction_label} {metric_label} Districts in {state_name}\n\n"
+                           f"Here are the districts in {state_name} ranked by average household load:\n\n"
+                           f"| Rank | District Name | Avg Electricity | Estimated Carbon Footprint |\n"
+                           f"| :--- | :--- | :--- | :--- |\n" + "\n".join(rank_list)
+            }
+            
+        # Default: Rank states
         filtered_states = [s for s in STATE_BASE_DATA if s["state"] not in ["Dadra and Nagar Haveli", "Daman and Diu"]]
         sorted_states = sorted(filtered_states, key=lambda x: x[metric_name], reverse=not is_lowest)
         top_states = sorted_states[:5]
