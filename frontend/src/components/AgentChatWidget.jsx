@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, X, Send, Sparkles, Loader2 } from 'lucide-react';
+import { MessageSquare, X, Send, Sparkles, Loader2, Zap } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function AgentChatWidget() {
   const { isDarkMode } = useTheme();
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
@@ -195,29 +197,43 @@ export default function AgentChatWidget() {
   return (
     <div style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 99 }}>
       
-      {/* Floating Action Button */}
+      {/* Floating Action Button (Exact match to 'Ask Griha Mitra' in reference image) */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
           style={{
-            width: 48,
-            height: 48,
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)',
-            border: 'none',
-            boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            background: '#0B296B',
+            border: '2px solid #FFFFFF',
+            borderRadius: 999,
+            padding: '6px 16px 6px 8px',
+            boxShadow: '0 4px 14px rgba(11,41,107,0.35)',
             cursor: 'pointer',
+            color: '#FFFFFF',
+            transition: 'transform 0.15s',
+            outline: 'none'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.04)'}
+          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          <div style={{
+            width: 28,
+            height: 28,
+            borderRadius: '50%',
+            background: '#EA580C',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#FFFFFF',
-            transition: 'transform 0.2s',
-            outline: 'none'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.08)'}
-          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-        >
-          <MessageSquare size={20} />
+            color: '#FFFFFF'
+          }}>
+            <Zap size={15} fill="#FFFFFF" />
+          </div>
+          <div style={{ textAlign: 'left', lineHeight: 1.15 }}>
+            <div style={{ fontSize: 11, fontWeight: 900, color: '#FFFFFF' }}>{t('ask_urja_mitra')}</div>
+            <div style={{ fontSize: 8.5, color: '#FDE047', fontWeight: 700 }}>{t('urja_mitra_sub')}</div>
+          </div>
         </button>
       )}
 

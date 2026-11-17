@@ -5,10 +5,10 @@ import { stateData } from '../data/stateData';
 import { useTheme } from '../context/ThemeContext';
 
 const LEGEND = [
-  { label: 'Excellent', range: '> 2,000 kWh',      color: '#EF4444' },
-  { label: 'Good',      range: '1,000–2,000 kWh',  color: '#F59E0B' },
-  { label: 'Moderate',  range: '500–1,000 kWh',    color: '#10B981' },
-  { label: 'Critical',  range: '< 500 kWh',        color: '#64748B' },
+  { label: 'High Demand Tier', range: '> 2,000 kWh',      color: '#DC2626' },
+  { label: 'Moderate Demand',  range: '1,000–2,000 kWh',  color: '#D97706' },
+  { label: 'Baseline Demand',  range: '500–1,000 kWh',    color: '#059669' },
+  { label: 'Low Demand Tier',  range: '< 500 kWh',        color: '#475569' },
 ];
 
 export default function LiveNationalMap({ 
@@ -21,11 +21,11 @@ export default function LiveNationalMap({
   const { isDarkMode } = useTheme();
   const [scale, setScale] = useState(1.0);
 
-  const cardBg = isDarkMode ? '#131824' : '#FFFFFF';
-  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
-  const titleColor = isDarkMode ? '#FFFFFF' : '#0F172A';
-  const subtitleColor = isDarkMode ? '#94A3B8' : '#475569';
-  const legendBg = isDarkMode ? 'rgba(11,15,25,0.92)' : 'rgba(255,255,255,0.95)';
+  const cardBg = isDarkMode ? '#131D2E' : '#FFFFFF';
+  const cardBorder = isDarkMode ? '#1E293B' : '#E2E8F0';
+  const titleColor = isDarkMode ? '#F8FAFC' : '#0A2540';
+  const subtitleColor = isDarkMode ? '#94A3B8' : '#64748B';
+  const legendBg = isDarkMode ? 'rgba(15,23,42,0.96)' : 'rgba(255,255,255,0.96)';
 
   return (
     <div style={{
@@ -42,8 +42,8 @@ export default function LiveNationalMap({
       {/* Panel header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderBottom: `1px solid ${cardBorder}`, flexShrink: 0 }}>
         <div>
-          <div style={{ fontSize: 10, fontWeight: 900, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em' }}>Live National Energy Map</div>
-          <div style={{ fontSize: 9, color: subtitleColor, marginTop: 2, fontWeight: 600 }}>Real-time Electricity Consumption Overview</div>
+          <div style={{ fontSize: 10, fontWeight: 900, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.08em' }}>National Transmission & Consumption Map</div>
+          <div style={{ fontSize: 9, color: subtitleColor, marginTop: 2, fontWeight: 600 }}>State-Wise SCADA Telemetry • CEA Grid Standard</div>
         </div>
         <div style={{ position: 'relative' }}>
           <select 

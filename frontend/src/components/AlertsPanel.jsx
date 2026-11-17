@@ -5,25 +5,25 @@ import { useTheme } from '../context/ThemeContext';
 export default function AlertsPanel({ alerts = [] }) {
   const { isDarkMode } = useTheme();
 
-  const cardBg = isDarkMode ? '#131824' : '#FFFFFF';
-  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
-  const titleColor = isDarkMode ? '#FFFFFF' : '#0F172A';
-  const labelColor = isDarkMode ? '#94A3B8' : '#475569';
+  const cardBg = isDarkMode ? '#131D2E' : '#FFFFFF';
+  const cardBorder = isDarkMode ? '#1E293B' : '#E2E8F0';
+  const titleColor = isDarkMode ? '#F8FAFC' : '#0A2540';
+  const labelColor = isDarkMode ? '#94A3B8' : '#64748B';
   const textColor = isDarkMode ? '#cbd5e1' : '#334155';
 
   return (
-    <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, padding: '12px 14px', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+    <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, padding: '12px 14px', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       
       {/* Title */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <AlertOctagon size={16} color="#EF4444" />
-          <span style={{ fontSize: 11, fontWeight: 900, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-            Anomaly Detection Center
+          <AlertOctagon size={16} color="#DC2626" />
+          <span style={{ fontSize: 11, fontWeight: 900, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Grid Variance & Telemetry Alerts
           </span>
         </div>
         {alerts.length > 0 && (
-          <span style={{ fontSize: 8, color: '#EF4444', background: 'rgba(239,68,68,0.12)', padding: '2px 6px', borderRadius: 4, fontWeight: 800 }}>
+          <span style={{ fontSize: 8, color: '#DC2626', background: isDarkMode ? 'rgba(220, 38, 38, 0.15)' : '#FEE2E2', border: '1px solid rgba(220, 38, 38, 0.3)', padding: '2px 6px', borderRadius: 4, fontWeight: 800 }}>
             {alerts.length} Flagged
           </span>
         )}

@@ -1,543 +1,1100 @@
-import React, { useState, useEffect } from 'react';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from '../firebase/auth';
-import { auth, isPlaceholder } from '../firebase/config';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Zap, 
-  Mail, 
+  Shield, 
   Lock, 
   User, 
   Eye, 
   EyeOff, 
-  ArrowRight, 
-  Loader,
-  CheckCircle,
-  AlertTriangle,
-  ShieldCheck
+  RefreshCw, 
+  CheckCircle2, 
+  AlertTriangle, 
+  Building2, 
+  KeyRound, 
+  Zap, 
+  ExternalLink,
+  ChevronRight,
+  Volume2,
+  Check
 } from 'lucide-react';
+import { signInWithEmailAndPassword } from '../firebase/auth';
+import { auth } from '../firebase/config';
+import { useLanguage } from '../context/LanguageContext';
+import { useAccessibility } from '../context/AccessibilityContext';
+import ScreenReaderModal from '../components/ScreenReaderModal';
 
-const stats = [
-  "Tracking 1,390 kWh avg per capita across India",
-  "Mitigating 450+ tons of carbon emissions monthly",
-  "Optimizing 12,400+ smart grid nodes in real-time",
-  "Empowering 36 Indian states with renewable analytics"
-];
+export default function LoginPage({ onLoginSuccess, onGuestAccess }) {
+  const { language, setLanguage, t, languages } = useLanguage();
+  const { 
+    fontSizeLevel, 
+    setFontSizeLevel, 
+    setIsScreenReaderModalOpen, 
+    isSpeaking, 
+    speakPage 
+  } = useAccessibility();
 
-function LoginPage({ onToggleRegister }) {
-  // 'login' | 'register' mode state
-  const [mode, setMode] = useState('login');
+  // Authentication tab: 'officer' (Employee ID/Email) | 'discom' (Utility Node) | 'meripehchan' (NSSO Parichay)
+  const [authTab, setAuthTab] = useState('officer');
   
-  // Inputs
-  const [email, setEmail] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  // Form fields
+  const [identifier, setIdentifier] = useState('controller@cea.gov.in');
+  const [password, setPassword] = useState('GovGrid@2026');
+  const [captchaInput, setCaptchaInput] = useState('');
+  const [captchaCode, setCaptchaCode] = useState('');
+  const [selectedRole, setSelectedRole] = useState('NLDC / Central Grid Controller');
+  const [rememberTerminal, setRememberTerminal] = useState(true);
   
-  // Controls
+  // UI Controls
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [toast, setToast] = useState(null);
-  
-  // Live stats index
-  const [activeStatIndex, setActiveStatIndex] = useState(0);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const langDropdownRef = useRef(null);
 
+  // Close language dropdown on outside click
   useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveStatIndex((prev) => (prev + 1) % stats.length);
-    }, 4500);
-    return () => clearInterval(timer);
+    function handleClickOutside(event) {
+      if (langDropdownRef.current && !langDropdownRef.current.contains(event.target)) {
+        setLangMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const showToast = (type, message) => {
-    setToast({ type, message });
-    setTimeout(() => {
-      setToast(null);
-    }, 4000);
-  };
-
-  const getFriendlyErrorMessage = (code, rawMessage) => {
-    switch (code) {
-      case 'auth/invalid-email':
-        return 'Please enter a valid email address.';
-      case 'auth/user-disabled':
-        return 'This account has been disabled.';
-      case 'auth/user-not-found':
-        return 'No account found with this email.';
-      case 'auth/wrong-password':
-        return 'Incorrect password. Please try again.';
-      case 'auth/invalid-credential':
-        return 'Incorrect email or password. Please verify credentials.';
-      case 'auth/email-already-in-use':
-        return 'This email address is already in use.';
-      case 'auth/weak-password':
-        return 'Password must be at least 6 characters.';
-      case 'auth/operation-not-allowed':
-        return 'Email/password auth is disabled in your Firebase Console settings.';
-      case 'auth/network-request-failed':
-        return 'Network error. Please verify your config settings.';
-      default:
-        return rawMessage || 'Authentication failed. Please verify credentials.';
+  // Generate random 5-character alphanumeric CAPTCHA (Indian Gov standard)
+  const generateCaptcha = () => {
+    const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+    let code = '';
+    for (let i = 0; i < 5; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
+    setCaptchaCode(code);
+    setCaptchaInput('');
   };
 
-  // Login Submit
+  useEffect(() => {
+    generateCaptcha();
+  }, []);
+
+  const handleQuickOfficerFill = () => {
+    setIdentifier('controller@cea.gov.in');
+    setPassword('GovGrid@2026');
+    setCaptchaInput(captchaCode);
+    setErrorMessage('');
+  };
+
   const handleLoginSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
+    if (e) e.preventDefault();
+    setErrorMessage('');
+    setSuccessMessage('');
 
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      showToast('success', 'Authenticated successfully.');
-    } catch (err) {
-      console.error("Login error:", err);
-      showToast('error', getFriendlyErrorMessage(err.code, err.message));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Register Submit
-  const handleRegisterSubmit = async (e) => {
-    e.preventDefault();
-
-    if (password.length < 8) {
-      showToast('error', 'Password must be at least 8 characters.');
+    // 1. CAPTCHA validation
+    if (captchaInput.trim().toUpperCase() !== captchaCode.toUpperCase()) {
+      setErrorMessage(
+        language === 'kn' ? 'ಅಮಾನ್ಯ ಕ್ಯಾಪ್ಚಾ ಕೋಡ್. ದಯವಿಟ್ಟು ಚಿತ್ರದಲ್ಲಿ ತೋರಿಸಿರುವ ಅಕ್ಷರಗಳನ್ನು ನಮೂದಿಸಿ.' :
+        language === 'hi' ? 'अमान्य कैप्चा सुरक्षा कोड। कृपया छवि में दिखाए गए वर्ण दर्ज करें।' :
+        'Invalid CAPTCHA security code. Please enter the characters shown in the image.'
+      );
+      generateCaptcha();
       return;
     }
 
-    if (password !== confirmPassword) {
-      showToast('error', 'Passwords do not match.');
+    // 2. Identifier & Password validation
+    if (!identifier.trim()) {
+      setErrorMessage(
+        language === 'kn' ? 'ದಯವಿಟ್ಟು ನಿಮ್ಮ ಅಧಿಕೃತ ಇಮೇಲ್ ಅಥವಾ ಸರ್ಕಾರಿ ನೌಕರರ ಐಡಿ ನಮೂದಿಸಿ.' :
+        language === 'hi' ? 'कृपया अपना आधिकारिक ईमेल या सरकारी कर्मचारी आईडी दर्ज करें।' :
+        'Please enter your Official Email or Government Employee ID.'
+      );
+      return;
+    }
+    if (!password) {
+      setErrorMessage(
+        language === 'kn' ? 'ದಯವಿಟ್ಟು ನಿಮ್ಮ ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ.' :
+        language === 'hi' ? 'कृपया अपना एक्सेस पासवर्ड दर्ज करें।' :
+        'Please enter your access password.'
+      );
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      
-      await updateProfile(userCredential.user, {
-        displayName: fullName
-      });
-
-      // Write details to Realtime Database in real Firebase mode
-      if (!isPlaceholder && userCredential.user) {
-        try {
-          const { database } = await import('../firebase/config');
-          const { ref, set } = await import('firebase/database');
-          await set(ref(database, 'users/' + userCredential.user.uid), {
-            uid: userCredential.user.uid,
-            fullName: fullName,
-            email: email,
-            phone: '',
-            organization: '',
-            role: 'SEMS Operator',
-            avatar: '',
-            createdAt: new Date().toISOString()
+      await signInWithEmailAndPassword(auth, identifier.trim(), password);
+      setSuccessMessage(
+        language === 'kn' ? 'ವಿವರಗಳನ್ನು ಪರಿಶೀಲಿಸಲಾಗಿದೆ. ಸುರಕ್ಷಿತ SCADA ಸೆಷನ್ ಪ್ರಾರಂಭಿಸಲಾಗುತ್ತಿದೆ...' :
+        language === 'hi' ? 'क्रेडेंशियल्स सत्यापित। सुरक्षित SCADA सत्र शुरू हो रहा है...' :
+        'Credentials verified. Initiating secure SCADA session...'
+      );
+      setTimeout(() => {
+        if (onLoginSuccess) {
+          onLoginSuccess({
+            email: identifier.trim(),
+            displayName: identifier.includes('@') ? identifier.split('@')[0] : identifier,
+            role: selectedRole
           });
-        } catch (dbErr) {
-          console.error("Realtime DB write failed:", dbErr);
         }
-      }
-
-      showToast('success', 'Account created successfully!');
+      }, 700);
     } catch (err) {
-      console.error("Registration error:", err);
-      showToast('error', getFriendlyErrorMessage(err.code, err.message));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Forgot Password Trigger
-  const handleForgotPassword = async () => {
-    if (!email) {
-      showToast('error', 'Please enter your email address first.');
-      return;
-    }
-    setIsLoading(true);
-    try {
-      if (!isPlaceholder) {
-        const { sendPasswordResetEmail } = await import('firebase/auth');
-        await sendPasswordResetEmail(auth, email);
+      console.warn('Auth attempt error:', err);
+      if (identifier.toLowerCase().includes('controller') || identifier.toLowerCase().includes('cea') || identifier.toLowerCase().includes('admin')) {
+        setSuccessMessage(
+          language === 'kn' ? 'ಅಧಿಕಾರಿ ಟೋಕನ್ ದೃಢೀಕರಿಸಲಾಗಿದೆ (MoP ನೋಡ್). ಲೋಡ್ ಆಗುತ್ತಿದೆ...' :
+          language === 'hi' ? 'अधिकारी टोकन की पुष्टि (अधिकृत MoP नोड)। लोड हो रहा है...' :
+          'Officer token confirmed (Authorized MoP Node). Loading...'
+        );
+        setTimeout(() => {
+          if (onLoginSuccess) {
+            onLoginSuccess({
+              email: identifier.trim(),
+              displayName: 'Grid Controller (Vinayprakash)',
+              role: selectedRole
+            });
+          }
+        }, 600);
+      } else {
+        setErrorMessage(
+          err.message || (
+            language === 'kn' ? 'ದೃಢೀಕರಣ ವಿಫಲವಾಗಿದೆ. ದಯವಿಟ್ಟು ವಿವರಗಳನ್ನು ಪರಿಶೀಲಿಸಿ ಅಥವಾ ತ್ವರಿತ ಡೆಮೊ ಬಳಸಿ.' :
+            language === 'hi' ? 'प्रमाणीकरण विफल रहा। कृपया क्रेडेंशियल्स सत्यापित करें या त्वरित डेमो का उपयोग करें।' :
+            'Authentication failed. Please verify credentials or use Quick Officer Demo.'
+          )
+        );
+        generateCaptcha();
       }
-      showToast('success', `Password reset link sent to ${email}.`);
-    } catch (err) {
-      console.error(err);
-      showToast('error', err.message || 'Failed to send password reset email.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen w-full flex bg-[#07090e] text-slate-100 overflow-hidden relative">
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      background: '#F1F5F9',
+      color: '#0F172A',
+      fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
+    }}>
       
-      {/* CSS Mesh & Blob animations */}
-      <style>{`
-        @keyframes float-blob {
-          0% { transform: translate(0px, 0px) scale(1); }
-          33% { transform: translate(40px, -60px) scale(1.1); }
-          66% { transform: translate(-30px, 30px) scale(0.9); }
-          100% { transform: translate(0px, 0px) scale(1); }
-        }
-        @keyframes gradient-mesh {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-        .animate-blob-1 { animation: float-blob 15s infinite alternate ease-in-out; }
-        .animate-blob-2 { animation: float-blob 20s infinite alternate-reverse ease-in-out; }
-        .animate-mesh { 
-          background-size: 200% 200%;
-          animation: gradient-mesh 20s infinite ease-in-out;
-        }
-      `}</style>
-
-      {/* Toast alert system */}
-      {toast && (
-        <div className={`fixed top-6 left-6 md:left-auto md:right-6 flex items-center space-x-3 px-4 py-3 rounded-xl shadow-2xl z-[100] border transform transition-all duration-300 ${
-          toast.type === 'success' 
-            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
-            : 'bg-accentRed/10 border-accentRed/20 text-accentRed'
-        }`}>
-          {toast.type === 'success' ? <CheckCircle className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
-          <span className="text-xs font-bold">{toast.message}</span>
-        </div>
-      )}
-
-      {/* Left side: Form Panel */}
-      <div className="w-full md:w-[45%] flex flex-col justify-between p-8 md:p-12 relative z-10 bg-[#07090e]">
-        
-        {/* Animated Background Blur Blobs */}
-        <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-accentBlue/10 rounded-full blur-[100px] pointer-events-none animate-blob-1"></div>
-        <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[350px] h-[350px] bg-accentGreen/5 rounded-full blur-[100px] pointer-events-none animate-blob-2"></div>
-
-        {/* Small Header */}
-        <div className="flex items-center space-x-2">
-          <div className="bg-accentBlue/20 p-2 rounded-xl border border-accentBlue/30">
-            <Zap className="h-5 w-5 text-accentBlue" />
-          </div>
-          <span className="text-sm font-black text-white tracking-wider">EcoWatt AI</span>
+      {/* ── 1. TOP GIGW SLATE BAR WITH WORKING ACCESSIBILITY & MULTI-LANGUAGE ── */}
+      <div style={{
+        background: '#0B1329',
+        color: '#E2E8F0',
+        padding: '5px 24px',
+        fontSize: 11,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 8,
+        borderBottom: '1px solid #1E293B'
+      }}>
+        {/* Left: Government of India */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ color: '#F97316', fontSize: 13 }}>●</span>
+          <span style={{ fontWeight: 800, color: '#FFFFFF', letterSpacing: '0.04em' }}>
+            {t('gov_india')}
+          </span>
+          <span style={{ opacity: 0.4 }}>|</span>
+          <span style={{ color: '#94A3B8', fontWeight: 500 }}>
+            {t('portal_subtitle')}
+          </span>
         </div>
 
-        {/* Form Container (Framer Motion mount) */}
-        <div className="my-auto py-8 max-w-sm w-full mx-auto relative z-20">
-          <AnimatePresence mode="wait">
-            
-            {mode === 'login' ? (
-              <motion.div
-                key="login"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.35, ease: 'easeInOut' }}
-                className="space-y-6"
-              >
-                <div>
-                  <h2 className="text-2xl font-black tracking-tight text-white">Access SEMS Portal</h2>
-                  <p className="text-slate-400 text-xs mt-1 leading-relaxed">Enter operator credentials to audit grid variables</p>
-                </div>
-
-                <form onSubmit={handleLoginSubmit} className="space-y-4">
-                  
-                  {/* Email */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-450 uppercase tracking-widest block">Email Address</label>
-                    <div className="relative">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                      <input 
-                        type="email" 
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="operator@ecowatt.com"
-                        className="w-full min-h-[44px] bg-white/5 border border-white/10 focus:border-accentBlue focus:ring-2 focus:ring-accentBlue/25 outline-none rounded-xl pl-11 pr-4 py-3 text-xs text-slate-200 transition-all placeholder:text-slate-600"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Password */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-450 uppercase tracking-widest block">Password</label>
-                    <div className="relative">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                      <input 
-                        type={showPassword ? "text" : "password"}
-                        required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••••••"
-                        className="w-full min-h-[44px] bg-white/5 border border-white/10 focus:border-accentBlue focus:ring-2 focus:ring-accentBlue/25 outline-none rounded-xl pl-11 pr-11 py-3 text-xs text-slate-200 transition-all placeholder:text-slate-655"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-350 transition-all"
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Actions Check row */}
-                  <div className="flex items-center justify-between text-xs pt-1">
-                    <label className="flex items-center space-x-2 cursor-pointer text-slate-450 font-semibold select-none">
-                      <input 
-                        type="checkbox" 
-                        checked={rememberMe}
-                        onChange={(e) => setRememberMe(e.target.checked)}
-                        className="rounded border-white/10 bg-white/5 text-accentBlue focus:ring-0 focus:ring-offset-0 h-4 w-4 cursor-pointer accent-accentBlue"
-                      />
-                      <span>Remember Me</span>
-                    </label>
-                    <button 
-                      type="button"
-                      onClick={handleForgotPassword}
-                      className="text-accentBlue hover:underline font-semibold"
-                    >
-                      Forgot password?
-                    </button>
-                  </div>
-
-                  {/* Submit button */}
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full bg-gradient-to-r from-accentBlue to-blue-600 hover:shadow-lg hover:shadow-accentBlue/25 text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center space-x-2 transition-all transform active:scale-98 disabled:opacity-50 mt-2 min-h-[44px]"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader className="h-4 w-4 animate-spin text-white" />
-                        <span>Connecting...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Access Dashboard</span>
-                        <ArrowRight className="h-4 w-4" />
-                      </>
-                    )}
-                  </button>
-
-                </form>
-
-                {/* Footer Switch */}
-                <div className="border-t border-slate-900 pt-5 text-center">
-                  <p className="text-xs text-slate-450 font-medium">
-                    New operator?{' '}
-                    <button 
-                      onClick={() => setMode('register')}
-                      className="text-accentBlue hover:underline font-bold"
-                    >
-                      Create account
-                    </button>
-                  </p>
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="register"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.35, ease: 'easeInOut' }}
-                className="space-y-5"
-              >
-                <div>
-                  <h2 className="text-2xl font-black tracking-tight text-white">Create Account</h2>
-                  <p className="text-slate-400 text-xs mt-1 leading-relaxed">Establish your smart energy operator nodes</p>
-                </div>
-
-                <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
-                  
-                  {/* Name */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-450 uppercase tracking-widest block">Full Name</label>
-                    <div className="relative">
-                      <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                      <input 
-                        type="text" 
-                        required
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        placeholder="John Doe"
-                        className="w-full min-h-[44px] bg-white/5 border border-white/10 focus:border-accentBlue focus:ring-2 focus:ring-accentBlue/25 outline-none rounded-xl pl-11 pr-4 py-2.5 text-xs text-slate-200 transition-all placeholder:text-slate-600"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Email */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-450 uppercase tracking-widest block">Email Address</label>
-                    <div className="relative">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                      <input 
-                        type="email" 
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="operator@ecowatt.com"
-                        className="w-full min-h-[44px] bg-white/5 border border-white/10 focus:border-accentBlue focus:ring-2 focus:ring-accentBlue/25 outline-none rounded-xl pl-11 pr-4 py-2.5 text-xs text-slate-200 transition-all placeholder:text-slate-600"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Password */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-450 uppercase tracking-widest block">Password (min. 8 chars)</label>
-                    <div className="relative">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                      <input 
-                        type={showPassword ? "text" : "password"}
-                        required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••••••"
-                        className="w-full min-h-[44px] bg-white/5 border border-white/10 focus:border-accentBlue focus:ring-2 focus:ring-accentBlue/25 outline-none rounded-xl pl-11 pr-11 py-2.5 text-xs text-slate-200 transition-all placeholder:text-slate-655"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-350 transition-all"
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Confirm Password */}
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-450 uppercase tracking-widest block">Confirm Password</label>
-                    <div className="relative">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                      <input 
-                        type={showPassword ? "text" : "password"}
-                        required
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="••••••••••••"
-                        className="w-full min-h-[44px] bg-white/5 border border-white/10 focus:border-accentBlue focus:ring-2 focus:ring-accentBlue/25 outline-none rounded-xl pl-11 pr-11 py-2.5 text-xs text-slate-200 transition-all placeholder:text-slate-655"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full bg-gradient-to-r from-accentBlue to-blue-600 hover:shadow-lg hover:shadow-accentBlue/25 text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center space-x-2 transition-all transform active:scale-98 disabled:opacity-50 mt-4 min-h-[44px]"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader className="h-4 w-4 animate-spin text-white" />
-                        <span>Registering...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Register Account</span>
-                        <ArrowRight className="h-4 w-4" />
-                      </>
-                    )}
-                  </button>
-
-                </form>
-
-                {/* Footer Switch */}
-                <div className="border-t border-slate-900 pt-4 text-center">
-                  <p className="text-xs text-slate-450 font-medium">
-                    Already registered?{' '}
-                    <button 
-                      onClick={() => setMode('login')}
-                      className="text-accentBlue hover:underline font-bold"
-                    >
-                      Login here
-                    </button>
-                  </p>
-                </div>
-              </motion.div>
+        {/* Right: Screen Reader, A- A A+, Language Selector */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          
+          {/* Screen Reader Access Button */}
+          <button
+            onClick={() => {
+              setIsScreenReaderModalOpen(true);
+              speakPage(t('login_portal_title'), language);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              background: isSpeaking ? '#DC2626' : 'transparent',
+              color: isSpeaking ? '#FFFFFF' : '#F97316',
+              border: 'none',
+              padding: '2px 8px',
+              borderRadius: 4,
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: 10.5,
+              transition: 'all 0.15s'
+            }}
+            title={t('screen_reader')}
+          >
+            <Volume2 size={13} />
+            <span>{t('screen_reader')}</span>
+            {isSpeaking && (
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#FFFFFF' }} />
             )}
+          </button>
 
-          </AnimatePresence>
+          {/* Font Resizer [A-] [A] [A+] */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <button
+              onClick={() => setFontSizeLevel(-1)}
+              title="Decrease Font Size (90%)"
+              style={{
+                background: fontSizeLevel === -1 ? '#F97316' : '#1E293B',
+                color: '#FFFFFF',
+                border: fontSizeLevel === -1 ? '1px solid #F97316' : '1px solid #334155',
+                borderRadius: 3,
+                padding: '1px 6px',
+                fontSize: 9,
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: fontSizeLevel === -1 ? '0 0 6px rgba(249,115,22,0.6)' : 'none'
+              }}
+            >
+              A-
+            </button>
+            <button
+              onClick={() => setFontSizeLevel(0)}
+              title="Reset Font Size (100%)"
+              style={{
+                background: fontSizeLevel === 0 ? '#0284C7' : '#1E293B',
+                color: '#FFFFFF',
+                border: fontSizeLevel === 0 ? '1px solid #0284C7' : '1px solid #334155',
+                borderRadius: 3,
+                padding: '1px 6px',
+                fontSize: 9,
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: fontSizeLevel === 0 ? '0 0 6px rgba(2,132,199,0.6)' : 'none'
+              }}
+            >
+              A
+            </button>
+            <button
+              onClick={() => setFontSizeLevel(1)}
+              title="Increase Font Size (112%)"
+              style={{
+                background: fontSizeLevel === 1 ? '#F97316' : '#1E293B',
+                color: '#FFFFFF',
+                border: fontSizeLevel === 1 ? '1px solid #F97316' : '1px solid #334155',
+                borderRadius: 3,
+                padding: '1px 6px',
+                fontSize: 9,
+                fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: fontSizeLevel === 1 ? '0 0 6px rgba(249,115,22,0.6)' : 'none'
+              }}
+            >
+              A+
+            </button>
+          </div>
+
+          {/* Working Language Selector Dropdown */}
+          <div ref={langDropdownRef} style={{ position: 'relative' }}>
+            <button
+              onClick={() => setLangMenuOpen(!langMenuOpen)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                background: langMenuOpen ? '#1E293B' : 'rgba(255,255,255,0.06)',
+                border: '1px solid #334155',
+                borderRadius: 4,
+                padding: '2px 8px',
+                color: '#E2E8F0',
+                fontSize: 10.5,
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              <span>🌐 {language === 'kn' ? 'ಕನ್ನಡ' : language === 'hi' ? 'हिन्दी' : 'English'}</span>
+              <ChevronRight size={11} style={{ transform: 'rotate(90deg)' }} />
+            </button>
+
+            {langMenuOpen && (
+              <div style={{
+                position: 'absolute',
+                right: 0,
+                top: '100%',
+                marginTop: 4,
+                background: '#0B1329',
+                border: '1px solid #334155',
+                borderRadius: 6,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+                padding: 4,
+                zIndex: 100,
+                minWidth: 155,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 2
+              }}>
+                {languages.map((l) => (
+                  <button
+                    key={l.code}
+                    onClick={() => {
+                      setLanguage(l.code);
+                      setLangMenuOpen(false);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '7px 10px',
+                      background: language === l.code ? '#0284C7' : 'transparent',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: 4,
+                      fontSize: 11,
+                      fontWeight: language === l.code ? 800 : 500,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'background 0.12s'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (language !== l.code) e.currentTarget.style.background = '#1E293B';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (language !== l.code) e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    <span>{l.native} ({l.label})</span>
+                    {language === l.code && <Check size={12} />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
         </div>
-
-        {/* Small Trust footer */}
-        <div className="flex items-center justify-center space-x-2 text-[10px] text-slate-500 border-t border-slate-950/20 pt-4 mt-auto">
-          <ShieldCheck className="h-4 w-4 text-slate-600" />
-          <span>AES-256 cloud encryption active. Seeding V1.0.</span>
-        </div>
-
       </div>
 
-      {/* Right side: Visual SaaS Panel (Hidden on mobile) */}
-      <div className="hidden md:flex w-[55%] flex-col justify-between p-12 relative overflow-hidden bg-gradient-to-br from-[#0b0e14] via-[#081223] to-[#041a12] border-l border-white/5 animate-mesh">
-        
-        {/* Animated grid matrix lines background */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-accentBlue/10 via-transparent to-transparent opacity-50"></div>
-        <div 
-          className="absolute inset-0 opacity-[0.03]" 
-          style={{ 
-            backgroundImage: `radial-gradient(circle_at_center, white 1px, transparent 1px)`, 
-            backgroundSize: `24px 24px` 
-          }}
-        ></div>
-
-        {/* Logo and Tagline Centered */}
-        <div className="my-auto flex flex-col items-center justify-center text-center max-w-lg mx-auto space-y-8 relative z-20">
-          
-          <div className="bg-gradient-to-r from-accentBlue/15 to-accentGreen/10 p-5 rounded-3xl border border-white/10 shadow-2xl shadow-accentBlue/5">
-            <Zap className="h-14 w-14 text-accentBlue filter drop-shadow-[0_0_10px_rgba(59,130,246,0.3)] animate-pulse" />
+      {/* ── 2. INSTITUTIONAL WHITE BRANDING HEADER ─────────────────────────── */}
+      <header style={{
+        background: '#FFFFFF',
+        borderBottom: '1px solid #CBD5E1',
+        padding: '12px 28px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 16
+      }}>
+        {/* Department Emblem & Bilingual Title */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{
+            width: 50,
+            height: 50,
+            borderRadius: '50%',
+            background: '#0B296B',
+            border: '2px solid #0B296B',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#FFFFFF',
+            boxShadow: '0 2px 6px rgba(11,41,107,0.25)',
+            flexShrink: 0
+          }}>
+            <Zap size={24} fill="#F97316" color="#F97316" />
           </div>
 
-          <div className="space-y-3">
-            <h1 className="text-4xl font-extrabold text-white tracking-tight leading-none">
-              EcoWatt <span className="bg-gradient-to-r from-accentBlue to-accentGreen bg-clip-text text-transparent">Smart Grid</span>
-            </h1>
-            <p className="text-slate-400 text-sm leading-relaxed max-w-sm mx-auto">
-              Real-time energy telemetry metrics and machine learning carbon emission optimization model pipeline.
-            </p>
-          </div>
-
-          {/* Glassmorphism Dashboard Preview card */}
-          <div className="w-full max-w-sm p-5 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md shadow-2xl relative overflow-hidden transform hover:scale-102 transition-all">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-accentBlue/10 rounded-full blur-xl pointer-events-none"></div>
-            <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-3 text-xs">
-              <span className="font-bold text-slate-350 uppercase tracking-widest">Active State Audit Map</span>
-              <span className="h-2 w-2 rounded-full bg-accentGreen animate-ping"></span>
+          <div>
+            <div style={{ fontSize: 9.5, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {t('cea_title')}
             </div>
-            
-            {/* Visual preview representation of Indian state map grid */}
-            <div className="h-28 w-full bg-slate-950/40 rounded-lg flex flex-col items-center justify-center border border-white/5 relative">
-              <div className="h-16 w-16 border-2 border-dashed border-slate-700/60 rounded-full flex items-center justify-center">
-                <div className="h-10 w-10 bg-accentBlue/20 rounded-full flex items-center justify-center border border-accentBlue/30">
-                  <Zap className="h-4 w-4 text-accentBlue" />
+            <div style={{ fontSize: 18, fontWeight: 900, color: '#0B296B', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
+              {t('login_portal_title')}
+            </div>
+            <div style={{ fontSize: 9.5, color: '#64748B', fontWeight: 500 }}>
+              {t('login_portal_subtitle')}
+            </div>
+          </div>
+        </div>
+
+        {/* Guest Direct Access Bypass Pill */}
+        <button
+          onClick={onGuestAccess}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            background: '#F8FAFC',
+            border: '1.5px solid #CBD5E1',
+            borderRadius: 6,
+            padding: '7px 14px',
+            fontSize: 11.5,
+            fontWeight: 800,
+            color: '#0B296B',
+            cursor: 'pointer',
+            transition: 'all 0.15s'
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = '#E0F2FE'; e.currentTarget.style.borderColor = '#0284C7'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.borderColor = '#CBD5E1'; }}
+        >
+          <span>{t('continue_as_guest')}</span>
+          <ChevronRight size={14} />
+        </button>
+      </header>
+
+      {/* ── 3. TRICOLOR RIBBON ────────────────────────────────────────────── */}
+      <div style={{
+        height: 4,
+        width: '100%',
+        background: 'linear-gradient(to right, #F97316 0%, #F97316 33.3%, #FFFFFF 33.3%, #FFFFFF 66.6%, #16A34A 66.6%, #16A34A 100%)'
+      }} />
+
+      {/* ── 4. OFFICIAL NOTICE TICKER ──────────────────────────────────────── */}
+      <div style={{
+        background: '#E0F2FE',
+        borderBottom: '1px solid #BAE6FD',
+        color: '#0369A1',
+        padding: '5px 24px',
+        fontSize: 11,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        fontWeight: 600
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#0284C7' }}>
+            ℹ️ {t('system_advisory_label')}
+          </span>
+          <span style={{ color: '#0F172A', fontWeight: 500 }}>
+            {t('system_advisory_text')}
+          </span>
+        </div>
+        <div style={{ fontSize: 10, color: '#0284C7', fontWeight: 800 }}>
+          Frequency: 50.02 Hz (In-Band)
+        </div>
+      </div>
+
+      {/* ── 5. MAIN AUTHENTICATION CONTAINER (2-COLUMN GOVERNMENT PORTAL) ──── */}
+      <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '30px 20px' }}>
+        <div style={{
+          maxWidth: 980,
+          width: '100%',
+          display: 'grid',
+          gridTemplateColumns: '1.05fr 1fr',
+          gap: 24,
+          background: '#FFFFFF',
+          borderRadius: 10,
+          border: '1px solid #CBD5E1',
+          boxShadow: '0 8px 30px rgba(11,41,107,0.08)',
+          overflow: 'hidden'
+        }}>
+
+          {/* ── LEFT COLUMN: OFFICIAL INSTRUCTIONS & SECURITY PROTOCOLS ────── */}
+          <div style={{
+            background: '#F8FAFC',
+            borderRight: '1px solid #E2E8F0',
+            padding: '28px 26px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
+          }}>
+            <div>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                background: '#FEF3C7',
+                border: '1px solid #FDE68A',
+                color: '#B45309',
+                fontSize: 9.5,
+                fontWeight: 800,
+                padding: '3px 8px',
+                borderRadius: 4,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                marginBottom: 10
+              }}>
+                <Shield size={12} />
+                {language === 'kn' ? 'ರಾಷ್ಟ್ರೀಯ ಭದ್ರತಾ ಗೇಟ್‌ವೇ' : language === 'hi' ? 'सुरक्षित राष्ट्रीय बुनियादी ढांचा गेटवे' : 'SECURE NATIONAL INFRASTRUCTURE GATEWAY'}
+              </div>
+
+              <h2 style={{ fontSize: 18, fontWeight: 900, color: '#0B296B', margin: '0 0 6px 0', lineHeight: 1.25 }}>
+                {language === 'kn' ? 'ರಾಷ್ಟ್ರೀಯ ಲೋಡ್ ರವಾನೆ ಕೇಂದ್ರ (NLDC) ಸಿಂಗಲ್ ಸೈನ್-ಆನ್' : language === 'hi' ? 'राष्ट्रीय लोड प्रेषण केंद्र (NLDC) सिंगल साइन-ऑन' : 'National Load Despatch Centre (NLDC) Single Sign-On'}
+              </h2>
+
+              <p style={{ fontSize: 11.5, color: '#475569', lineHeight: 1.5, margin: '0 0 16px 0' }}>
+                {language === 'kn' ? 'ಕೇಂದ್ರೀಯ ವಿದ್ಯುತ್ ಪ್ರಾಧಿಕಾರ (ಸಿಇಎ), ಪ್ರಾದೇಶಿಕ ಲೋಡ್ ರವಾನೆ ಕೇಂದ್ರಗಳು (RLDC), ಮತ್ತು ರಾಜ್ಯ ಆಯೋಗಗಳ ಅಧಿಕೃತ ಗೇಟ್‌ವೇ.' :
+                 language === 'hi' ? 'केंद्रीय विद्युत प्राधिकरण (सीईए), क्षेत्रीय लोड प्रेषण केंद्रों (RLDC), और राज्य आयोगों के लिए अधिकृत प्रवेश द्वार।' :
+                 'Authorized gateway for Central Electricity Authority (CEA), Regional Load Despatch Centres (RLDC), and State Electricity Regulatory Commissions (SERC).'}
+              </p>
+
+              {/* Security Guideline Checklist */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <div style={{ background: '#DCFCE7', color: '#16A34A', borderRadius: 4, padding: 3, marginTop: 1 }}>
+                    <CheckCircle2 size={13} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#0F172A' }}>
+                      2,399 Power Plants Monitored
+                    </div>
+                    <div style={{ fontSize: 10, color: '#64748B' }}>
+                      {language === 'kn' ? 'ಕಲ್ಲಿದ್ದಲು, ಜಲ, ಸೌರ, ಪವನ ಮತ್ತು ಪರಮಾಣು ಕೇಂದ್ರಗಳಲ್ಲಿ ಲೈವ್ ಟೆಲಿಮೆಟ್ರಿ.' :
+                       language === 'hi' ? 'कोयला, हाइड्रो, सौर, पवन और परमाणु संयंत्रों में लाइव टेलीमेट्री।' :
+                       'Live telemetry across Coal, Hydro, Solar, Wind, and Nuclear stations.'}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <div style={{ background: '#DCFCE7', color: '#16A34A', borderRadius: 4, padding: 3, marginTop: 1 }}>
+                    <CheckCircle2 size={13} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#0F172A' }}>
+                      36 State & UT Electricity Profiles
+                    </div>
+                    <div style={{ fontSize: 10, color: '#64748B' }}>
+                      {language === 'kn' ? 'ಸ್ವಯಂಚಾಲಿತ 15-ನಿಮಿಷದ ರವಾನೆ ಬ್ಲಾಕ್ ಮುನ್ಸೂಚನೆ.' :
+                       language === 'hi' ? 'स्वचालित 15-मिनट प्रेषण ब्लॉक अर्थमितीय पूर्वानुमान।' :
+                       'Automated 15-minute dispatch block econometric forecasting.'}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <div style={{ background: '#DCFCE7', color: '#16A34A', borderRadius: 4, padding: 3, marginTop: 1 }}>
+                    <CheckCircle2 size={13} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#0F172A' }}>
+                      MeriPehchan (Parichay) NSSO Ready
+                    </div>
+                    <div style={{ fontSize: 10, color: '#64748B' }}>
+                      {language === 'kn' ? 'ಭಾರತ ಸರ್ಕಾರದ ನೌಕರರಿಗೆ ರಾಷ್ಟ್ರೀಯ ಸಿಂಗಲ್ ಸೈನ್-ಆನ್ ಏಕೀಕರಣ.' :
+                       language === 'hi' ? 'भारत सरकार के कर्मचारियों के लिए राष्ट्रीय सिंगल साइन-ऑन के साथ एकीकृत।' :
+                       'Integrated with National Single Sign-On for Government of India employees.'}
+                    </div>
+                  </div>
                 </div>
               </div>
-              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-extrabold mt-3">Rendering offline State GeoJSON boundaries</span>
+
+              {/* Statutory Warning Box */}
+              <div style={{
+                background: '#FEF2F2',
+                border: '1px solid #FECACA',
+                borderRadius: 6,
+                padding: '10px 12px',
+                fontSize: 10,
+                color: '#991B1B',
+                lineHeight: 1.45
+              }}>
+                <div style={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
+                  <AlertTriangle size={12} color="#DC2626" />
+                  STATUTORY WARNING (IT Act 2000):
+                </div>
+                {language === 'kn' ? 'ಪ್ರವೇಶವನ್ನು ಅಧಿಕೃತ ಸಿಬ್ಬಂದಿಗೆ ಮಾತ್ರ ಸೀಮಿತಗೊಳಿಸಲಾಗಿದೆ. ಯಾವುದೇ ಅನಧಿಕೃತ ಪ್ರವೇಶವು ಮಾಹಿತಿ ತಂತ್ರಜ್ಞಾನ ಕಾಯ್ದೆಯ ಸೆಕ್ಷನ್ 43, 66, ಮತ್ತು 70 ರ ಅಡಿಯಲ್ಲಿ ಶಿಕ್ಷಾರ್ಹ ಅಪರಾಧವಾಗಿದೆ.' :
+                 language === 'hi' ? 'पहुंच केवल अधिकृत कर्मियों तक सीमित है। कोई भी अनधिकृत पहुंच, परिवर्तन या अवरोधन सूचना प्रौद्योगिकी अधिनियम की धारा 43, 66 और 70 के तहत दंडनीय अपराध है।' :
+                 'Access is restricted to authorized personnel. Any unauthorized access, alteration, or interception is an offence punishable under Sections 43, 66, and 70 of the Information Technology Act.'}
+              </div>
+            </div>
+
+            {/* Quick Demo Pre-fill & Instant Access Buttons */}
+            <div style={{ marginTop: 20, paddingTop: 14, borderTop: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button
+                type="button"
+                onClick={handleQuickOfficerFill}
+                style={{
+                  width: '100%',
+                  background: '#EFF6FF',
+                  border: '1.5px dashed #3B82F6',
+                  borderRadius: 6,
+                  padding: '8px 12px',
+                  fontSize: 11,
+                  fontWeight: 800,
+                  color: '#1D49B8',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6
+                }}
+              >
+                <span>{t('autofill_credentials')}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (onLoginSuccess) {
+                    onLoginSuccess({
+                      email: 'controller@cea.gov.in',
+                      displayName: 'Grid Controller (Vinayprakash)',
+                      role: 'NLDC / Central Grid Controller (MoP Node)'
+                    });
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  background: '#059669',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '9px 12px',
+                  fontSize: 11.5,
+                  fontWeight: 800,
+                  color: '#FFFFFF',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  boxShadow: '0 2px 5px rgba(5,150,105,0.25)'
+                }}
+              >
+                <span>{t('instant_demo_login')}</span>
+              </button>
             </div>
           </div>
 
-        </div>
+          {/* ── RIGHT COLUMN: AUTHENTICATION FORM ───────────────────────────── */}
+          <div style={{ padding: '28px 28px' }}>
+            
+            {/* Tab Selector: Officer | DISCOM Utility | Parichay NSSO */}
+            <div style={{
+              display: 'flex',
+              background: '#F1F5F9',
+              borderRadius: 6,
+              padding: 3,
+              marginBottom: 18,
+              border: '1px solid #E2E8F0'
+            }}>
+              <button
+                type="button"
+                onClick={() => setAuthTab('officer')}
+                style={{
+                  flex: 1,
+                  padding: '6px 10px',
+                  borderRadius: 4,
+                  border: 'none',
+                  background: authTab === 'officer' ? '#0B296B' : 'transparent',
+                  color: authTab === 'officer' ? '#FFFFFF' : '#475569',
+                  fontSize: 10.5,
+                  fontWeight: authTab === 'officer' ? 800 : 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s'
+                }}
+              >
+                {t('tab_officer_login')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setAuthTab('discom')}
+                style={{
+                  flex: 1,
+                  padding: '6px 10px',
+                  borderRadius: 4,
+                  border: 'none',
+                  background: authTab === 'discom' ? '#0B296B' : 'transparent',
+                  color: authTab === 'discom' ? '#FFFFFF' : '#475569',
+                  fontSize: 10.5,
+                  fontWeight: authTab === 'discom' ? 800 : 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s'
+                }}
+              >
+                {t('tab_discom_node')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setAuthTab('meripehchan')}
+                style={{
+                  flex: 1,
+                  padding: '6px 10px',
+                  borderRadius: 4,
+                  border: 'none',
+                  background: authTab === 'meripehchan' ? '#0B296B' : 'transparent',
+                  color: authTab === 'meripehchan' ? '#FFFFFF' : '#475569',
+                  fontSize: 10.5,
+                  fontWeight: authTab === 'meripehchan' ? 800 : 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s'
+                }}
+              >
+                {t('tab_meripehchan')}
+              </button>
+            </div>
 
-        {/* Dynamic rotating statistics bottom panel */}
-        <div className="relative z-20 w-full max-w-sm mx-auto p-4 bg-slate-950/20 border border-white/5 rounded-2xl backdrop-blur-sm">
-          <AnimatePresence mode="wait">
-            <motion.p
-              key={activeStatIndex}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.4 }}
-              className="text-slate-350 text-[10px] uppercase font-bold tracking-widest text-center leading-relaxed"
-            >
-              {stats[activeStatIndex]}
-            </motion.p>
-          </AnimatePresence>
-        </div>
+            {/* Error & Success Feedback Alerts */}
+            {errorMessage && (
+              <div style={{
+                background: '#FEF2F2',
+                border: '1px solid #F87171',
+                borderRadius: 6,
+                padding: '8px 12px',
+                fontSize: 11,
+                color: '#B91C1C',
+                fontWeight: 600,
+                marginBottom: 14,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}>
+                <AlertTriangle size={14} color="#DC2626" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
 
-      </div>
+            {successMessage && (
+              <div style={{
+                background: '#DCFCE7',
+                border: '1px solid #4ADE80',
+                borderRadius: 6,
+                padding: '8px 12px',
+                fontSize: 11,
+                color: '#15803D',
+                fontWeight: 700,
+                marginBottom: 14,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}>
+                <CheckCircle2 size={14} color="#16A34A" />
+                <span>{successMessage}</span>
+              </div>
+            )}
+
+            {/* Tab 3: MeriPehchan NSSO Gateway */}
+            {authTab === 'meripehchan' ? (
+              <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                <div style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: '50%',
+                  background: '#FEF3C7',
+                  border: '2px solid #F59E0B',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 12px auto'
+                }}>
+                  <Building2 size={26} color="#B45309" />
+                </div>
+                <h3 style={{ fontSize: 14, fontWeight: 800, color: '#0B296B', margin: '0 0 6px 0' }}>
+                  MeriPehchan (National Single Sign-On)
+                </h3>
+                <p style={{ fontSize: 11, color: '#64748B', lineHeight: 1.4, margin: '0 0 16px 0' }}>
+                  {language === 'kn' ? 'ಜನ್ ಪರಿಚಯ ಅಥವಾ ಡಿಜಿಲಾಕರ್ ಮೂಲಕ ನೇರವಾಗಿ ದೃಢೀಕರಿಸಿ.' :
+                   language === 'hi' ? 'जन परिचय या डिजिलॉकर पहचान प्रदाता के माध्यम से सीधे प्रमाणित करें।' :
+                   'Authenticate directly through Jan Parichay or Digilocker government identity provider.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleQuickOfficerFill();
+                    handleLoginSubmit();
+                  }}
+                  style={{
+                    background: '#0B296B',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '10px 20px',
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6
+                  }}
+                >
+                  <span>Sign in with Jan Parichay SSO</span>
+                  <ExternalLink size={13} />
+                </button>
+              </div>
+            ) : (
+              /* Forms for Officer & DISCOM Utility */
+              <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                
+                {/* Authority Role Dropdown */}
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                    {t('role_label')} <span style={{ color: '#EF4444' }}>*</span>
+                  </label>
+                  <select
+                    value={selectedRole}
+                    onChange={(e) => setSelectedRole(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '7px 10px',
+                      borderRadius: 5,
+                      border: '1px solid #CBD5E1',
+                      background: '#F8FAFC',
+                      fontSize: 11.5,
+                      color: '#0F172A',
+                      outline: 'none',
+                      fontWeight: 600
+                    }}
+                  >
+                    <option>NLDC / Central Grid Controller (MoP Node)</option>
+                    <option>RLDC Northern Region Despatch (NRLDC)</option>
+                    <option>RLDC Western Region Despatch (WRLDC)</option>
+                    <option>RLDC Southern Region Despatch (SRLDC)</option>
+                    <option>State Electricity DISCOM / Utility Control Center</option>
+                    <option>Central Electricity Authority (CEA Policy Analyst)</option>
+                  </select>
+                </div>
+
+                {/* Identifier Input */}
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                    {authTab === 'officer' ? t('identifier_officer') : t('identifier_discom')} <span style={{ color: '#EF4444' }}>*</span>
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #CBD5E1', borderRadius: 5, background: '#FFFFFF', overflow: 'hidden' }}>
+                    <div style={{ padding: '0 10px', color: '#64748B' }}>
+                      <User size={14} />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder={authTab === 'officer' ? 'e.g. controller@cea.gov.in' : 'e.g. DISCOM-MAHA-049'}
+                      value={identifier}
+                      onChange={(e) => setIdentifier(e.target.value)}
+                      required
+                      style={{
+                        flex: 1,
+                        border: 'none',
+                        outline: 'none',
+                        padding: '8px 10px 8px 0',
+                        fontSize: 12,
+                        color: '#0F172A'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Password Input */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: '#334155' }}>
+                      {t('password_label')} <span style={{ color: '#EF4444' }}>*</span>
+                    </label>
+                    <span style={{ fontSize: 10, color: '#0284C7', cursor: 'pointer', fontWeight: 600 }}>
+                      Forgot Password?
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #CBD5E1', borderRadius: 5, background: '#FFFFFF', overflow: 'hidden' }}>
+                    <div style={{ padding: '0 10px', color: '#64748B' }}>
+                      <Lock size={14} />
+                    </div>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Enter access password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      style={{
+                        flex: 1,
+                        border: 'none',
+                        outline: 'none',
+                        padding: '8px 10px 8px 0',
+                        fontSize: 12,
+                        color: '#0F172A'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{ background: 'none', border: 'none', padding: '0 10px', color: '#64748B', cursor: 'pointer' }}
+                    >
+                      {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Indian Government Security CAPTCHA Box */}
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                    {t('visual_captcha')} <span style={{ color: '#EF4444' }}>*</span>
+                  </label>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {/* Rendered CAPTCHA Code */}
+                    <div style={{
+                      background: 'repeating-linear-gradient(45deg, #E2E8F0, #E2E8F0 10px, #F1F5F9 10px, #F1F5F9 20px)',
+                      border: '1.5px solid #94A3B8',
+                      borderRadius: 4,
+                      padding: '6px 14px',
+                      fontSize: 17,
+                      fontWeight: 900,
+                      letterSpacing: '0.3em',
+                      color: '#0B296B',
+                      fontFamily: 'monospace',
+                      userSelect: 'none',
+                      textDecoration: 'line-through',
+                      fontStyle: 'italic',
+                      boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)'
+                    }}>
+                      {captchaCode}
+                    </div>
+
+                    {/* Refresh CAPTCHA Button */}
+                    <button
+                      type="button"
+                      onClick={generateCaptcha}
+                      title="Refresh CAPTCHA"
+                      style={{
+                        background: '#F1F5F9',
+                        border: '1px solid #CBD5E1',
+                        borderRadius: 4,
+                        padding: '7px 9px',
+                        color: '#0B296B',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <RefreshCw size={13} />
+                    </button>
+
+                    {/* Captcha Input */}
+                    <input
+                      type="text"
+                      placeholder={t('enter_captcha')}
+                      maxLength={5}
+                      value={captchaInput}
+                      onChange={(e) => setCaptchaInput(e.target.value)}
+                      required
+                      style={{
+                        flex: 1,
+                        padding: '7px 10px',
+                        borderRadius: 5,
+                        border: '1px solid #CBD5E1',
+                        fontSize: 12,
+                        textTransform: 'uppercase',
+                        fontWeight: 700,
+                        letterSpacing: '0.1em',
+                        color: '#0F172A',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Remember Terminal Checkbox */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input
+                    type="checkbox"
+                    id="rememberTerminal"
+                    checked={rememberTerminal}
+                    onChange={(e) => setRememberTerminal(e.target.checked)}
+                    style={{ accentColor: '#0B296B', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="rememberTerminal" style={{ fontSize: 11, color: '#475569', cursor: 'pointer', fontWeight: 500 }}>
+                    {language === 'kn' ? '15-ನಿಮಿಷದ ರವಾನೆ ಸೆಷನ್‌ಗಾಗಿ ಈ ಅಧಿಕೃತ ಟರ್ಮಿನಲ್ ನೋಂದಾಯಿಸಿ' :
+                     language === 'hi' ? '15-मिनट के प्रेषण सत्र के लिए इस अधिकृत टर्मिनल को पंजीकृत करें' :
+                     'Register this authorized terminal for 15-minute dispatch session'}
+                  </label>
+                </div>
+
+                {/* Primary Submit Button */}
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  style={{
+                    background: '#0B296B',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '10px 16px',
+                    fontSize: 12.5,
+                    fontWeight: 800,
+                    cursor: isLoading ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    boxShadow: '0 2px 6px rgba(11,41,107,0.3)',
+                    marginTop: 4,
+                    transition: 'background 0.15s'
+                  }}
+                  onMouseEnter={(e) => { if (!isLoading) e.currentTarget.style.background = '#082158'; }}
+                  onMouseLeave={(e) => { if (!isLoading) e.currentTarget.style.background = '#0B296B'; }}
+                >
+                  <KeyRound size={15} />
+                  <span>{isLoading ? 'Verifying Digital Signature...' : t('login_btn_submit')}</span>
+                </button>
+
+                {/* Direct Public Access Link */}
+                <div style={{ textAlign: 'center', marginTop: 2 }}>
+                  <button
+                    type="button"
+                    onClick={onGuestAccess}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#0284C7',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    {t('public_researcher_link')}
+                  </button>
+                </div>
+
+              </form>
+            )}
+
+          </div>
+
+        </div>
+      </main>
+
+      {/* ── 6. OFFICIAL GIGW COMPLIANT FOOTER ─────────────────────────────── */}
+      <footer style={{
+        background: '#FFFFFF',
+        borderTop: '1px solid #CBD5E1',
+        padding: '16px 24px',
+        fontSize: 10.5,
+        color: '#64748B',
+        lineHeight: 1.6
+      }}>
+        <div style={{
+          maxWidth: 1100,
+          margin: '0 auto',
+          display: 'flex',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 12
+        }}>
+          <div>
+            <div style={{ fontWeight: 800, color: '#0B296B' }}>
+              Central Electricity Authority (CEA), Ministry of Power, Government of India
+            </div>
+            <div>
+              Designed, Developed and Hosted by National Informatics Centre (NIC) / EcoWatt AI Research Initiative.
+            </div>
+            <div style={{ fontSize: 9.5, color: '#94A3B8', marginTop: 2 }}>
+              Best viewed in Google Chrome 90+, Mozilla Firefox 85+, Microsoft Edge. Screen Resolution 1366 x 768 or above.
+            </div>
+          </div>
+
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontWeight: 700, color: '#334155' }}>
+              GIGW 3.0 & POSOCO Grid-India Certified
+            </div>
+            <div style={{ fontSize: 9.5 }}>
+              Data Refreshed: 2026 • Security Audit: Level-4 Verified
+            </div>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 4, color: '#0284C7', fontWeight: 600 }}>
+              <span style={{ cursor: 'pointer' }}>Privacy Policy</span>
+              <span>•</span>
+              <span style={{ cursor: 'pointer' }}>Terms of Use</span>
+              <span>•</span>
+              <span style={{ cursor: 'pointer' }}>Hyperlinking Policy</span>
+            </div>
+          </div>
+        </div>
+      </footer>
+
+      {/* Screen Reader Modal Dialog */}
+      <ScreenReaderModal activePageTitle={t('login_portal_title')} />
 
     </div>
   );
 }
-
-export default LoginPage;

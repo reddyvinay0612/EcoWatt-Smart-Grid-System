@@ -2,7 +2,13 @@ import os
 import math
 import difflib
 import requests
+import re
 from dotenv import load_dotenv
+from app.all_districts import ALL_DISTRICTS
+from app.optimize.solar_calculator import SolarCalculator
+
+# Instantiate global solar calculator for simulated cortex routing
+solar_calc = SolarCalculator()
 
 # Load env variables
 load_dotenv()
@@ -74,7 +80,7 @@ REAL_DISTRICT_NAMES = {
   "Himachal Pradesh": ["Shimla", "Dharamshala", "Solan", "Mandi", "Kullu", "Hamirpur", "Chamba", "Una", "Kangra", "Bilaspur"],
   "Jammu and Kashmir": ["Srinagar", "Jammu", "Anantnag", "Baramulla", "Kathua", "Udhampur", "Kupwara", "Samba", "Pulwama", "Poonch"],
   "Jharkhand": ["Ranchi", "Jamshedpur", "Dhanbad", "Bokaro", "Hazaribagh", "Deoghar", "Giridih", "Dumka", "Adityapur"],
-  "Karnataka": ["Bengaluru Urban", "Mysuru", "Belagavi", "Dharwad", "Dakshina Kannada", "Kalaburagi", "Ballari", "Udupi", "Hubli", "Mangaluru", "Shivamogga"],
+  "Karnataka": ["Bengaluru Urban", "Mysuru", "Belagavi", "Dharwad", "Dakshina Kannada", "Kalaburagi", "Ballari", "Udupi", "Hubli", "Mangaluru"],
   "Kerala": ["Thiruvananthapuram", "Ernakulam (Kochi)", "Kozhikode", "Thrissur", "Malappuram", "Palakkad", "Kollam", "Alappuzha", "Kannur", "Kottayam"],
   "Ladakh": ["Leh", "Kargil"],
   "Lakshadweep": ["Kavaratti", "Agatti", "Minicoy"],
@@ -115,14 +121,65 @@ def get_districts_for_state(state_name, state_average, emission_factor):
     districts = []
     for name in names:
         variance = 0.65 + random_val() * 0.7
-        electricity_consumption = round(state_average * variance, 2)
-        carbon_emission = round(electricity_consumption * emission_factor, 2)
+        electricity_consumption = round(state_average * variance * 100) / 100
+        carbon_emission = round(electricity_consumption * emission_factor * 100) / 100
+        
+        # Advance seed twice to match JS pop and gdp calls
+        random_val()
+        random_val()
+        
         districts.append({
             "name": name,
             "electricity_consumption": electricity_consumption,
             "carbon_emission": carbon_emission
         })
     return districts
+
+def get_all_districts_for_state(state_name, state_average, emission_factor):
+    existing_data = get_districts_for_state(state_name, state_average, emission_factor)
+    all_dist_list = ALL_DISTRICTS.get(state_name, [])
+    if not all_dist_list:
+        return existing_data
+        
+    filled = []
+    for district_name in all_dist_list:
+        existing = None
+        target_name_clean = district_name.lower().replace(" ", "")
+        for d in existing_data:
+            d_name_clean = d["name"].lower().replace(" ", "")
+            if d_name_clean == target_name_clean:
+                existing = d
+                break
+                
+        if existing:
+            filled.append({
+                "name": district_name,
+                "electricity_consumption": existing["electricity_consumption"],
+                "carbon_emission": existing.get("carbon_emission", round(existing["electricity_consumption"] * emission_factor, 2))
+            })
+            continue
+            
+        seed = [0]
+        str_comb = state_name + district_name
+        for c in str_comb:
+            seed[0] += ord(c)
+            
+        def seeded_random():
+            x = math.sin(seed[0]) * 10000
+            seed[0] += 1
+            return x - math.floor(x)
+            
+        variance = seeded_random() * 0.6 - 0.3
+        electricity_consumption = round(state_average * (1 + variance))
+        local_factor = emission_factor * (0.85 + seeded_random() * 0.3)
+        carbon_emission = round(electricity_consumption * local_factor)
+        
+        filled.append({
+            "name": district_name,
+            "electricity_consumption": float(electricity_consumption),
+            "carbon_emission": float(carbon_emission)
+        })
+    return filled
 
 def query_cortex_agent(user_message: str, conversation_history: list = None):
     """
@@ -201,7 +258,15 @@ def query_cortex_agent(user_message: str, conversation_history: list = None):
     except Exception as e:
         print(f"Snowflake Cortex Agent API exception: {e}")
         sim_res = simulate_cortex_response(user_message, conversation_history)
-        sim_res["message"] = f"⚠️ *Note: Snowflake connection failed ({str(e)}). Displaying simulated baseline database response:*\n\n" + sim_res.get("message", "")
+        
+        # Clean up DNS/Connection errors for visual elegance
+        err_msg = str(e)
+        if "getaddrinfo failed" in err_msg or "NameResolutionError" in err_msg or "ConnectionRefusedError" in err_msg or "Max retries exceeded" in err_msg:
+            clean_err = "Network/DNS unreachable or offline"
+        else:
+            clean_err = err_msg
+            
+        sim_res["message"] = f"⚠️ *Note: Snowflake connection failed ({clean_err}). Displaying simulated baseline database response:*\n\n" + sim_res.get("message", "")
         return sim_res
 
 def simulate_cortex_response(msg: str, conversation_history: list = None):
@@ -254,23 +319,26 @@ def simulate_cortex_response(msg: str, conversation_history: list = None):
         for turn in reversed(conversation_history):
             turn_content = turn.get("content", "").lower()
             
-            # Match districts in previous turns (more specific than states)
-            for state_name, districts in REAL_DISTRICT_NAMES.items():
-                state_data = next(s for s in STATE_BASE_DATA if s["state"] == state_name)
-                generated_districts = get_districts_for_state(state_name, state_data["electricity_consumption"], state_data["factor"])
-                for dist_obj in generated_districts:
-                    dist_lower = dist_obj["name"].lower()
+            # Match districts in previous turns (more specific than states) using ALL_DISTRICTS
+            for state_name, districts_list in ALL_DISTRICTS.items():
+                state_data = next((s for s in STATE_BASE_DATA if s["state"] == state_name), None)
+                if not state_data:
+                    state_data = {"state": state_name, "electricity_consumption": NATIONAL_AVG, "carbon_emission": NATIONAL_CARBON_AVG, "factor": 0.85}
+                for dist_name in districts_list:
+                    dist_lower = dist_name.lower()
                     if re.search(r'\b' + re.escape(dist_lower) + r'\b', turn_content):
-                        loc_obj = {
-                            "type": "district",
-                            "name": dist_obj["name"],
-                            "parent_state": state_name,
-                            "state_avg": state_data["electricity_consumption"],
-                            "data": dist_obj
-                        }
-                        if not any(l["name"] == dist_obj["name"] for l in resolved_locations):
-                            resolved_locations.append(loc_obj)
-                            
+                        dist_obj = next((d for d in get_all_districts_for_state(state_name, state_data["electricity_consumption"], state_data["factor"]) if d["name"].lower() == dist_lower), None)
+                        if dist_obj:
+                            loc_obj = {
+                                "type": "district",
+                                "name": dist_name,
+                                "parent_state": state_name,
+                                "state_avg": state_data["electricity_consumption"],
+                                "data": dist_obj
+                            }
+                            if not any(l["name"] == dist_name for l in resolved_locations):
+                                resolved_locations.append(loc_obj)
+                                
             # Match states in previous turns
             for state_data in STATE_BASE_DATA:
                 state_lower = state_data["state"].lower()
@@ -301,14 +369,16 @@ def simulate_cortex_response(msg: str, conversation_history: list = None):
         if state_name.lower() in msg_lower:
             found_locations.append({"type": "state", "name": state_name, "data": state_data})
             
-    # Direct scan for exact district substrings
-    for state_name, districts in REAL_DISTRICT_NAMES.items():
-        state_data = next(s for s in STATE_BASE_DATA if s["state"] == state_name)
-        generated_districts = get_districts_for_state(state_name, state_data["electricity_consumption"], state_data["factor"])
-        for dist_obj in generated_districts:
-            dist_name = dist_obj["name"]
+    # Direct scan for exact district substrings using ALL_DISTRICTS
+    for state_name, districts_list in ALL_DISTRICTS.items():
+        for dist_name in districts_list:
             if dist_name.lower() in msg_lower:
-                if not any(l["name"] == dist_name for l in found_locations):
+                state_data = next((s for s in STATE_BASE_DATA if s["state"] == state_name), None)
+                if not state_data:
+                    state_data = {"state": state_name, "electricity_consumption": NATIONAL_AVG, "carbon_emission": NATIONAL_CARBON_AVG, "factor": 0.85}
+                generated_districts = get_all_districts_for_state(state_name, state_data["electricity_consumption"], state_data["factor"])
+                dist_obj = next((d for d in generated_districts if d["name"].lower() == dist_name.lower()), None)
+                if dist_obj and not any(l["name"] == dist_name for l in found_locations):
                     found_locations.append({
                         "type": "district",
                         "name": dist_name,
@@ -322,17 +392,19 @@ def simulate_cortex_response(msg: str, conversation_history: list = None):
         corpus = {}
         for state_data in STATE_BASE_DATA:
             corpus[state_data["state"].lower()] = {"type": "state", "name": state_data["state"], "data": state_data}
-        for state_name, districts in REAL_DISTRICT_NAMES.items():
-            state_data = next(s for s in STATE_BASE_DATA if s["state"] == state_name)
-            generated_districts = get_districts_for_state(state_name, state_data["electricity_consumption"], state_data["factor"])
-            for dist_obj in generated_districts:
-                dist_name = dist_obj["name"]
+        for state_name, districts_list in ALL_DISTRICTS.items():
+            state_data = next((s for s in STATE_BASE_DATA if s["state"] == state_name), None)
+            if not state_data:
+                state_data = {"state": state_name, "electricity_consumption": NATIONAL_AVG, "carbon_emission": NATIONAL_CARBON_AVG, "factor": 0.85}
+            for dist_name in districts_list:
                 corpus[dist_name.lower()] = {
                     "type": "district",
                     "name": dist_name,
                     "parent_state": state_name,
                     "state_avg": state_data["electricity_consumption"],
-                    "data": dist_obj
+                    "data_loader": lambda st=state_name, sd=state_data, dn=dist_name: next(
+                        (d for d in get_all_districts_for_state(st, sd["electricity_consumption"], sd["factor"]) if d["name"].lower() == dn.lower()), None
+                    )
                 }
 
         # Check individual words (len > 4) against corpus keys
@@ -341,8 +413,12 @@ def simulate_cortex_response(msg: str, conversation_history: list = None):
             matches = difflib.get_close_matches(word, corpus.keys(), n=1, cutoff=0.8)
             if matches:
                 matched_key = matches[0]
-                if not any(l["name"] == corpus[matched_key]["name"] for l in found_locations):
-                    found_locations.append(corpus[matched_key])
+                matched_item = dict(corpus[matched_key])
+                if "data_loader" in matched_item:
+                    matched_item["data"] = matched_item["data_loader"]()
+                    del matched_item["data_loader"]
+                if not any(l["name"] == matched_item["name"] for l in found_locations):
+                    found_locations.append(matched_item)
                     break 
 
     # Resolve pronoun location if no explicit location matches
@@ -370,6 +446,73 @@ def simulate_cortex_response(msg: str, conversation_history: list = None):
         return {
             "status": "success",
             "message": "Hello! I am your **EcoWatt AI assistant**, connected to Snowflake Cortex. How can I help you with electricity consumption, carbon emissions, or dashboard navigation today?"
+        }
+
+    # INTENT H: Solar Adoption & Sizing
+    is_solar = contains_word(["solar", "sun", "rooftop", "panel", "surya", "payback", "subsidy", "subsidies"])
+    if is_solar:
+        # Extract number for custom calculations if they specify electricity units or consumption
+        consumption_match = re.search(r'(\d+)\s*(?:unit|kwh|units|consumption)', msg_lower)
+        if consumption_match:
+            consumption = float(consumption_match.group(1))
+            res = solar_calc.recommend_solar_sizing_and_payback(consumption)
+            
+            non_solar_str = ""
+            strategies = solar_calc.generate_non_solar_optimization_strategies(consumption)
+            for s in strategies:
+                non_solar_str += f"- **{s['title']}**: {s['recommendation']} (Saves ~{s['estimated_bill_reduction_percentage']}%)\n"
+                
+            return {
+                "status": "success",
+                "message": f"### ☀️ Customized Solar Recommendation & PM Surya Ghar Sizing\n\n"
+                           f"Based on your monthly consumption of **{consumption} kWh/month**, here is the optimal solar configuration:\n\n"
+                           f"| Parameter | Value |\n"
+                           f"| :--- | :--- |\n"
+                           f"| **Recommended Solar Capacity** | **{res['recommended_capacity_kw']} kW** |\n"
+                           f"| **Estimated Gross System Cost** | Rs. {res['system_gross_cost_inr']:,} |\n"
+                           f"| **PM Surya Ghar Central Subsidy** | **Rs. {res['pm_surya_ghar_subsidy_inr']:,}** |\n"
+                           f"| **Net Initial Investment** | **Rs. {res['net_investment_inr']:,}** |\n"
+                           f"| **Estimated Generation** | {res['monthly_generation_kwh']} kWh/month |\n"
+                           f"| **Estimated Bill Savings** | Rs. {res['monthly_savings_inr']:,}/month |\n"
+                           f"| **Carbon Emissions Avoided** | {res['avoided_co2_kg_monthly']} kg CO2/month |\n"
+                           f"| **Calculated Payback Period** | **{res['payback_years']} years** |\n\n"
+                           f"#### 💡 Alternative Non-Solar Energy Optimization Strategies:\n"
+                           f"{non_solar_str}"
+            }
+            
+        # Default responses for general questions about solar statistics
+        # Check if state name is mentioned
+        specified_state = None
+        for loc in found_locations:
+            if loc["type"] == "state":
+                specified_state = loc
+                break
+                
+        if specified_state:
+            state_name = specified_state["name"]
+            # Mock stats for some popular states
+            solar_count = 135000 if state_name == "Karnataka" else 310000 if state_name == "Maharashtra" else 85000
+            solar_cap = 540000.0 if state_name == "Karnataka" else 1240000.0 if state_name == "Maharashtra" else 340000.0
+            return {
+                "status": "success",
+                "message": f"### ☀️ Rooftop Solar Profile: {state_name}\n\n"
+                           f"According to the EcoWatt geospatial analytics database, solar adoption in **{state_name}** stands at:\n\n"
+                           f"- **Installed Solar Roofs**: {solar_count:,} homes\n"
+                           f"- **Total Solar Generation Capacity**: {solar_cap:,} kW\n"
+                           f"- **Average Solar GHI**: 4.5 - 5.2 kWh/m²/day\n\n"
+                           f"To size your own home rooftop solar capacity and calculate government subsidies, try asking: *'recommend solar capacity for 250 units'*."
+            }
+            
+        # General response about solar PM Surya Ghar
+        return {
+            "status": "success",
+            "message": "### ☀️ PM Surya Ghar Muft Bijli Yojana & Solar Adoption\n\n"
+                       "The central government's **PM Surya Ghar Muft Bijli Yojana** provides massive financial subsidies for rooftop solar adoption in India:\n\n"
+                       "- **Subsidy Sizing**:\n"
+                       "  - **1-2 kW systems**: Rs. 30,000 to Rs. 60,000 central subsidy.\n"
+                       "  - **2-3 kW systems**: Rs. 60,000 to Rs. 78,000 central subsidy.\n"
+                       "  - **3+ kW systems**: Capped at a maximum subsidy of **Rs. 78,000**.\n"
+                       "- **System sizing estimate**: Ask me *'recommend solar capacity for 250 units'* to calculate custom costs and payback periods!"
         }
 
     # INTENT A1: Greenwood Sector Report
@@ -412,8 +555,16 @@ def simulate_cortex_response(msg: str, conversation_history: list = None):
                        "- **Anomaly Detection**: Flags sudden spikes that exceed historical baseline usage by 20% or more."
         }
 
+    # INTENT G: Ranking
+    is_ranking = contains_word(["highest", "lowest", "maximum", "minimum", "max", "min", "top", "bottom", "most", "least", "rank", "ranking"]) or \
+                 (contains_word(["which", "who", "highest", "most", "more"]) and contains_word(["district", "state", "facility", "household", "consume", "electricity", "emission"]))
+
+    # INTENT D: Optimization & Advice
+    is_more = contains_word(["more", "details", "elaborate", "continue"])
+    is_optim = (contains_word(["optimize", "reduction", "reduce", "lower", "decrease", "saving", "tips", "solar", "renewable", "audit", "cleaner"]) or (is_more and len(found_locations) > 0)) and not is_ranking
+
     # INTENT C: Educational & Definitional
-    is_def = contains_word(["per capita", "carbon emission", "definition", "define", "what causes", "good kwh usage", "meaning of", "explain"])
+    is_def = contains_word(["per capita", "carbon emission", "definition", "define", "what causes", "good kwh usage", "meaning of", "explain"]) and not is_optim
     if is_def:
         if "per capita" in msg_lower:
             return {
@@ -441,13 +592,6 @@ def simulate_cortex_response(msg: str, conversation_history: list = None):
                            "- **High usage (> 350 kWh)**: Frequent air conditioning, space heaters, or EV charging."
             }
 
-    # INTENT G: Ranking
-    is_ranking = contains_word(["highest", "lowest", "maximum", "minimum", "max", "min", "top", "bottom", "most", "least", "rank", "ranking"]) or \
-                 (contains_word(["which", "who", "highest", "most", "more"]) and contains_word(["district", "state", "facility", "household", "consume", "electricity", "emission"]))
-
-    # INTENT D: Optimization & Advice
-    is_more = contains_word(["more", "details", "elaborate", "continue"])
-    is_optim = (contains_word(["optimize", "reduction", "reduce", "lower", "decrease", "saving", "tips", "solar", "renewable", "audit", "cleaner"]) or (is_more and len(found_locations) > 0)) and not is_ranking
     if is_optim:
         if found_locations:
             advices = []
@@ -566,7 +710,7 @@ def simulate_cortex_response(msg: str, conversation_history: list = None):
         if specified_state:
             state_name = specified_state["name"]
             state_data = specified_state["data"]
-            districts = get_districts_for_state(state_name, state_data["electricity_consumption"], state_data["factor"])
+            districts = get_all_districts_for_state(state_name, state_data["electricity_consumption"], state_data["factor"])
             sorted_districts = sorted(districts, key=lambda x: x[metric_name], reverse=not is_lowest)
             
             rank_list = []

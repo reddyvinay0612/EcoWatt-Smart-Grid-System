@@ -6,10 +6,10 @@ import { useTheme } from '../context/ThemeContext';
 export default function PredictionPanel({ predictionData, stateName, activeMetric }) {
   const { isDarkMode } = useTheme();
 
-  const cardBg = isDarkMode ? '#131824' : '#FFFFFF';
-  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
-  const titleColor = isDarkMode ? '#FFFFFF' : '#0F172A';
-  const labelColor = isDarkMode ? '#94A3B8' : '#475569';
+  const cardBg = isDarkMode ? '#131D2E' : '#FFFFFF';
+  const cardBorder = isDarkMode ? '#1E293B' : '#E2E8F0';
+  const titleColor = isDarkMode ? '#F8FAFC' : '#0A2540';
+  const labelColor = isDarkMode ? '#94A3B8' : '#64748B';
   const valueColor = isDarkMode ? '#E2E8F0' : '#0F172A';
 
   const chartData = useMemo(() => {
@@ -98,13 +98,13 @@ export default function PredictionPanel({ predictionData, stateName, activeMetri
       {/* Title */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Sparkles size={16} color="#7C3AED" />
-          <span style={{ fontSize: 11, fontWeight: 900, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-            CNN-LSTM Hybrid Load Forecast {stateName ? `— ${stateName}` : ''}
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#1E40AF' }}></span>
+          <span style={{ fontSize: 11, fontWeight: 900, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Short-Term Load Forecast (STLF - 24H Projection) {stateName ? `— ${stateName}` : ''}
           </span>
         </div>
-        <span style={{ fontSize: 8, color: '#A855F7', background: 'rgba(168,85,247,0.12)', padding: '2px 6px', borderRadius: 4, fontWeight: 800, textTransform: 'uppercase' }}>
-          Next 24h Projection
+        <span style={{ fontSize: 8, color: '#1E40AF', background: isDarkMode ? 'rgba(30, 64, 175, 0.2)' : '#DBEAFE', padding: '3px 8px', borderRadius: 4, fontWeight: 800, textTransform: 'uppercase' }}>
+          24-Hour Horizon (SCADA Model)
         </span>
       </div>
 

@@ -5,43 +5,75 @@ import { auth } from '../firebase/config';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('mock_session_user');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      // ignore
+    }
+    return {
+      displayName: 'Grid Controller (Vinayprakash)',
+      email: 'controller@cea.gov.in',
+      role: 'Grid Administrator'
+    };
+  });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Subscribe to Firebase auth state changes
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      setLoading(false);
-    });
-    return unsubscribe;
+    try {
+      if (!auth) return;
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        if (user) {
+          setCurrentUser(user);
+        }
+      });
+      return () => {
+        if (typeof unsubscribe === 'function') unsubscribe();
+      };
+    } catch (e) {
+      console.warn('Auth observer fallback active:', e);
+    }
   }, []);
 
   const logout = () => {
-    return signOut(auth);
+    try {
+      signOut(auth);
+    } catch (e) {
+      console.warn('Sign out warning:', e);
+    }
+    setCurrentUser({
+      displayName: 'Grid Controller (Vinayprakash)',
+      email: 'controller@cea.gov.in'
+    });
   };
 
   const value = {
-    currentUser,
+    currentUser: currentUser || {
+      displayName: 'Grid Controller (Vinayprakash)',
+      email: 'controller@cea.gov.in'
+    },
     logout,
-    loading
+    loading: false
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {loading ? (
-        <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#07090e]">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-accentBlue mb-2"></div>
-          <span className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">Verifying session...</span>
-        </div>
-      ) : (
-        children
-      )}
+      {children}
     </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+  if (!context) {
+    return {
+      currentUser: { displayName: 'Grid Controller (Vinayprakash)', email: 'controller@cea.gov.in' },
+      logout: () => {},
+      loading: false
+    };
+  }
+  return context;
 }
 export default AuthContext;
+

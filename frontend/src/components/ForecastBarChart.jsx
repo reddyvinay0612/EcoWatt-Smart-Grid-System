@@ -9,10 +9,10 @@ const COLORS = ['#3B82F6','#4f76e0','#5b6de0','#6b5ce0','#7c3aed','#8b3ae0','#A8
 export default function ForecastBarChart() {
   const { isDarkMode } = useTheme();
 
-  const cardBg = isDarkMode ? '#131824' : '#FFFFFF';
-  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
-  const titleColor = isDarkMode ? '#FFFFFF' : '#0F172A';
-  const labelColor = isDarkMode ? '#94A3B8' : '#475569';
+  const cardBg = isDarkMode ? '#131D2E' : '#FFFFFF';
+  const cardBorder = isDarkMode ? '#1E293B' : '#E2E8F0';
+  const titleColor = isDarkMode ? '#F8FAFC' : '#0A2540';
+  const labelColor = isDarkMode ? '#94A3B8' : '#64748B';
   const valueColor = isDarkMode ? '#E2E8F0' : '#0F172A';
 
   return (

@@ -1,6 +1,9 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
-from backend.app.database import Base
+try:
+    from app.database import Base
+except ImportError:
+    from backend.app.database import Base
 
 class User(Base):
     __tablename__ = "users"
@@ -109,3 +112,65 @@ class CarbonRecord(Base):
     avoided_emissions_kg = Column(Float, nullable=False)
 
     consumer = relationship("Consumer", back_populates="carbon_records")
+
+class StateSolarAnalytics(Base):
+    __tablename__ = "state_solar_analytics"
+
+    state_id = Column(String(5), primary_key=True, index=True)
+    state_name = Column(String(100), unique=True, nullable=False)
+    total_households = Column(Integer, default=0, nullable=False)
+    solar_installed_count = Column(Integer, default=0, nullable=False)
+    total_solar_capacity_kw = Column(Float, default=0.0, nullable=False)
+    avg_monthly_generation_kwh = Column(Float, default=0.0, nullable=False)
+    total_electricity_optimized_kwh = Column(Float, default=0.0, nullable=False)
+    non_solar_potential_kwh = Column(Float, default=0.0, nullable=False)
+
+    districts = relationship("DistrictSolarAnalytics", back_populates="state_ref", cascade="all, delete-orphan")
+
+class DistrictSolarAnalytics(Base):
+    __tablename__ = "district_solar_analytics"
+
+    district_id = Column(String(20), primary_key=True, index=True)
+    district_name = Column(String(100), nullable=False)
+    state_name = Column(String(100), ForeignKey("state_solar_analytics.state_name", ondelete="CASCADE"), nullable=False)
+    total_households = Column(Integer, default=0, nullable=False)
+    solar_installed_count = Column(Integer, default=0, nullable=False)
+    total_solar_capacity_kw = Column(Float, default=0.0, nullable=False)
+    avg_monthly_generation_kwh = Column(Float, default=0.0, nullable=False)
+    total_electricity_optimized_kwh = Column(Float, default=0.0, nullable=False)
+    non_solar_potential_kwh = Column(Float, default=0.0, nullable=False)
+
+    state_ref = relationship("StateSolarAnalytics", back_populates="districts")
+    pincodes = relationship("PincodeSolarAnalytics", back_populates="district_ref", cascade="all, delete-orphan")
+
+class PincodeSolarAnalytics(Base):
+    __tablename__ = "pincode_solar_analytics"
+
+    pincode = Column(String(10), primary_key=True, index=True)
+    district_id = Column(String(20), ForeignKey("district_solar_analytics.district_id", ondelete="CASCADE"), nullable=False)
+    solar_installation_density_ratio = Column(Float, default=0.0, nullable=False)
+    total_roof_area_sqm = Column(Float, default=0.0, nullable=False)
+    estimated_unutilized_solar_capacity_kw = Column(Float, default=0.0, nullable=False)
+
+    district_ref = relationship("DistrictSolarAnalytics", back_populates="pincodes")
+    households = relationship("HouseholdSolarAnalytics", back_populates="pincode_ref", cascade="all, delete-orphan")
+
+class HouseholdSolarAnalytics(Base):
+    __tablename__ = "household_solar_analytics"
+
+    household_id = Column(String(50), primary_key=True, index=True)
+    owner_name = Column(String(150))
+    pincode = Column(String(10), ForeignKey("pincode_solar_analytics.pincode", ondelete="CASCADE"), nullable=False)
+    roof_polygon_wkt = Column(String)  # WKT representation of spatial polygon geometry
+    usable_roof_area_sqm = Column(Float, nullable=False)
+    solar_status = Column(String(20), default="NON_SOLAR", nullable=False)  # 'SOLAR', 'NON_SOLAR'
+    installed_capacity_kw = Column(Float, default=0.0)
+    ghi_irradiance_kwh_m2_day = Column(Float, default=4.5, nullable=False)
+    monthly_grid_consumption_kwh = Column(Float, nullable=False)
+    avoided_co2_kg_monthly = Column(Float, default=0.0, nullable=False)
+    savings_monthly_inr = Column(Float, default=0.0, nullable=False)
+    payback_years = Column(Float, nullable=True)
+    recommended_capacity_kw = Column(Float, nullable=True)
+
+    pincode_ref = relationship("PincodeSolarAnalytics", back_populates="households")
+

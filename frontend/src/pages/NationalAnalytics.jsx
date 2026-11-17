@@ -41,12 +41,12 @@ export default function NationalAnalytics() {
   const [compareA,         setCompareA]       = useState('Maharashtra');
   const [compareB,         setCompareB]       = useState('Uttar Pradesh');
 
-  const cardBg = isDarkMode ? '#131824' : '#FFFFFF';
-  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
-  const titleColor = isDarkMode ? '#FFFFFF' : '#0F172A';
-  const labelColor = isDarkMode ? '#94A3B8' : '#475569';
-  const buttonBg = isDarkMode ? 'rgba(255,255,255,0.05)' : '#F1F5F9';
-  const buttonBorder = isDarkMode ? 'rgba(255,255,255,0.1)' : '#CBD5E1';
+  const cardBg = isDarkMode ? '#131D2E' : '#FFFFFF';
+  const cardBorder = isDarkMode ? '#1E293B' : '#E2E8F0';
+  const titleColor = isDarkMode ? '#F8FAFC' : '#0A2540';
+  const labelColor = isDarkMode ? '#94A3B8' : '#64748B';
+  const buttonBg = isDarkMode ? '#1E293B' : '#F8FAFC';
+  const buttonBorder = isDarkMode ? '#334155' : '#CBD5E1';
 
   // Robust state selector handler
   const handleSelectState = (input) => {
@@ -170,6 +170,47 @@ export default function NationalAnalytics() {
   ══════════════════════════════════════════════════════════════════ */
   if (view === 'india') return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+      {/* Official Government Module Header */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        background: cardBg,
+        border: `1px solid ${cardBorder}`,
+        borderRadius: 8,
+        padding: '12px 18px',
+        flexWrap: 'wrap',
+        gap: 10
+      }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 9, fontWeight: 800, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              CENTRAL ELECTRICITY AUTHORITY (CEA) • NATIONAL POWER DISPATCH
+            </span>
+          </div>
+          <h1 style={{ margin: '2px 0 0 0', fontSize: 16, fontWeight: 900, color: titleColor }}>
+            National Energy Transmission & State-Wise Consumption Matrix
+          </h1>
+          <p style={{ margin: '3px 0 0 0', fontSize: 10, color: labelColor, fontWeight: 500 }}>
+            Real-time SCADA telemetry across 36 States & UTs • Frequency reference: 50.02 Hz in-band.
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            fontSize: 9,
+            fontWeight: 800,
+            color: '#059669',
+            background: isDarkMode ? 'rgba(5, 150, 105, 0.12)' : '#DCFCE7',
+            border: '1px solid rgba(5, 150, 105, 0.25)',
+            padding: '4px 10px',
+            borderRadius: 5
+          }}>
+            ● National Grid Synchronized (POSOCO)
+          </div>
+        </div>
+      </div>
 
       {/* Row 2 — Main 3-Column Section */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 240px 240px', gap: 14, alignItems: 'stretch' }}>

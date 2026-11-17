@@ -13,6 +13,10 @@ frontend/dist/
 frontend/.env
 backend/.env
 
+# Large Raw Data (>100MB exceeds GitHub limits)
+solar_pipeline/data/raw/Smart Home Energy Consumption Optimization.csv
+*.csv.gz
+
 # Local App Data / Logs
 .system_generated/
 .gemini/

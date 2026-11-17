@@ -7,13 +7,13 @@ export default function ConsumptionTrendChart({ historicalData = [], baseAvg = 2
   const { isDarkMode } = useTheme();
   const [range, setRange] = useState('Day');
 
-  const cardBg = isDarkMode ? '#131824' : '#FFFFFF';
-  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
-  const titleColor = isDarkMode ? '#FFFFFF' : '#0F172A';
-  const labelColor = isDarkMode ? '#94A3B8' : '#475569';
+  const cardBg = isDarkMode ? '#131D2E' : '#FFFFFF';
+  const cardBorder = isDarkMode ? '#1E293B' : '#E2E8F0';
+  const titleColor = isDarkMode ? '#F8FAFC' : '#0A2540';
+  const labelColor = isDarkMode ? '#94A3B8' : '#64748B';
   const valueColor = isDarkMode ? '#E2E8F0' : '#0F172A';
-  const selectBg = isDarkMode ? 'rgba(255,255,255,0.06)' : '#F1F5F9';
-  const selectBorder = isDarkMode ? 'rgba(255,255,255,0.1)' : '#CBD5E1';
+  const selectBg = isDarkMode ? '#1E293B' : '#F1F5F9';
+  const selectBorder = isDarkMode ? '#334155' : '#CBD5E1';
   const selectText = isDarkMode ? '#CBD5E1' : '#0F172A';
 
   // Compute dataset based on selected range

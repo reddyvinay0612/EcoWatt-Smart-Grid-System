@@ -4,8 +4,8 @@ const ThemeContext = createContext();
 
 export function ThemeProvider({ children }) {
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('ecowatt_theme');
-    return saved !== null ? saved === 'dark' : true;
+    // Official Government Portal: Default to clean light theme matching uploaded design
+    return false;
   });
 
   useEffect(() => {

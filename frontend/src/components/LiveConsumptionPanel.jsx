@@ -5,10 +5,10 @@ import { useTheme } from '../context/ThemeContext';
 export default function LiveConsumptionPanel({ currentData }) {
   const { isDarkMode } = useTheme();
 
-  const cardBg = isDarkMode ? '#131824' : '#FFFFFF';
-  const cardBorder = isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0';
-  const titleColor = isDarkMode ? '#FFFFFF' : '#0F172A';
-  const labelColor = isDarkMode ? '#94A3B8' : '#475569';
+  const cardBg = isDarkMode ? '#131D2E' : '#FFFFFF';
+  const cardBorder = isDarkMode ? '#1E293B' : '#E2E8F0';
+  const titleColor = isDarkMode ? '#F8FAFC' : '#0A2540';
+  const labelColor = isDarkMode ? '#94A3B8' : '#64748B';
   const valueColor = isDarkMode ? '#E2E8F0' : '#0F172A';
 
   if (!currentData) {
@@ -48,9 +48,9 @@ export default function LiveConsumptionPanel({ currentData }) {
       {/* Title */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Activity size={16} color="#3B82F6" />
-          <span style={{ fontSize: 11, fontWeight: 900, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-            Live Load Monitoring
+          <Activity size={16} color="#1E40AF" />
+          <span style={{ fontSize: 11, fontWeight: 900, color: titleColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            SCADA Feeder Telemetry & Load Monitoring (BTM)
           </span>
         </div>
         <span style={{

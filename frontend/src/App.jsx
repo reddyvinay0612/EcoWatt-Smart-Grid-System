@@ -4,9 +4,11 @@ import { Play } from 'lucide-react';
 import LoginPage         from './pages/LoginPage';
 import ProfilePage       from './pages/ProfilePage';
 import NationalAnalytics from './pages/NationalAnalytics';
+import SolarAnalytics    from './pages/SolarAnalytics';
+import StateReportExplorer from './pages/StateReportExplorer';
+import PowerGenerationExplorer from './pages/PowerGenerationExplorer';
 
 import Header  from './components/Header';
-import Sidebar from './components/Sidebar';
 
 import LiveConsumptionPanel  from './components/LiveConsumptionPanel';
 import ConsumptionTrendChart from './components/ConsumptionTrendChart';
@@ -21,6 +23,7 @@ import MetricsDashboard      from './components/MetricsDashboard';
 
 import { useAuth }          from './context/AuthContext';
 import { useTheme }         from './context/ThemeContext';
+import { useLanguage }      from './context/LanguageContext';
 import { householdService } from './services/api';
 
 /* ─── Error Boundary ─────────────────────────────────────────────── */
@@ -44,9 +47,13 @@ class ErrorBoundary extends React.Component {
 function App() {
   const { currentUser, logout } = useAuth();
   const { isDarkMode } = useTheme();
-  const isAuthenticated = !!currentUser;
+  const { language, t } = useLanguage();
+  // Starts on Official Government Login Page on initial load / until authenticated
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return sessionStorage.getItem('cea_authenticated') === 'true';
+  });
 
-  const [activePage,          setActivePage]          = useState('agent'); // Default to Cortex Agent page
+  const [activePage,          setActivePage]          = useState('national');
   const [activeQuery,         setActiveQuery]         = useState(null);
   const [households,          setHouseholds]          = useState([]);
   const [selectedHouseholdId, setSelectedHouseholdId] = useState('');
@@ -126,13 +133,35 @@ function App() {
   const handleLogout = async () => {
     try {
       await logout();
-      setActivePage('national');
     } catch (e) {
       console.error(e);
     }
+    sessionStorage.removeItem('cea_authenticated');
+    sessionStorage.removeItem('cea_officer_name');
+    setIsAuthenticated(false);
+    setActivePage('login');
   };
 
-  if (!isAuthenticated) return <LoginPage />;
+  // If not authenticated or on login page, display Official Government Single Sign-On Portal
+  if (!isAuthenticated || activePage === 'login') {
+    return (
+      <LoginPage
+        onLoginSuccess={(user) => {
+          sessionStorage.setItem('cea_authenticated', 'true');
+          if (user?.displayName) {
+            sessionStorage.setItem('cea_officer_name', user.displayName);
+          }
+          setIsAuthenticated(true);
+          setActivePage('national');
+        }}
+        onGuestAccess={() => {
+          sessionStorage.setItem('cea_authenticated', 'true');
+          setIsAuthenticated(true);
+          setActivePage('national');
+        }}
+      />
+    );
+  }
 
   const renderPage = () => {
     switch (activePage) {
@@ -146,9 +175,9 @@ function App() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              background: isDarkMode ? '#131824' : '#FFFFFF',
-              border: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.06)' : '#E2E8F0'}`,
-              borderRadius: 12,
+              background: '#FFFFFF',
+              border: '1px solid #E2E8F0',
+              borderRadius: 8,
               padding: '10px 18px',
               flexWrap: 'wrap',
               gap: 10
@@ -172,18 +201,18 @@ function App() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: 6,
-                    background: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F1F5F9',
-                    border: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.1)' : '#CBD5E1'}`,
-                    borderRadius: 8,
+                    background: '#F1F5F9',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: 6,
                     padding: '6px 14px',
-                    fontSize: 10,
+                    fontSize: 10.5,
                     fontWeight: 750,
-                    color: isDarkMode ? '#cbd5e1' : '#334155',
+                    color: '#334155',
                     cursor: 'pointer',
                     opacity: isSimulating ? 0.5 : 1
                   }}
                 >
-                  <Play size={10} fill="#3B82F6" color="#3B82F6" />
+                  <Play size={10} fill="#0B296B" color="#0B296B" />
                   Simulate Smart Meter Tick
                 </button>
               </div>
@@ -208,7 +237,7 @@ function App() {
         );
       case 'agent':
         return (
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 14, height: 'calc(100vh - 80px)', minHeight: 0, overflow: 'hidden', background: '#F5F7FA', padding: '14px 0 14px 0' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 14, height: 'calc(100vh - 180px)', minHeight: 0, overflow: 'hidden', background: '#F5F7FA', padding: '14px 0 14px 0' }}>
             <div style={{ minHeight: 0, overflowY: 'auto', paddingRight: 4 }}>
               <MetricsDashboard onPresetClick={(query) => setActiveQuery(query)} />
             </div>
@@ -220,6 +249,12 @@ function App() {
 
       case 'evaluation':
         return <ModelComparisonPanel comparisonData={comparisonData} />;
+      case 'generation':
+        return <PowerGenerationExplorer />;
+      case 'solar':
+        return <SolarAnalytics />;
+      case 'state-reports':
+        return <StateReportExplorer />;
       case 'profile':
         return <ProfilePage onBackToDashboard={() => setActivePage('national')} selectedHouseholdId={selectedHouseholdId} />;
       default:
@@ -232,36 +267,122 @@ function App() {
       display: 'flex',
       flexDirection: 'column',
       height: '100vh',
-      background: isDarkMode ? '#0a0e17' : '#F8FAFC',
-      color: isDarkMode ? '#f1f5f9' : '#0F172A',
+      background: isDarkMode ? '#0B1329' : '#F4F6F9',
+      color: isDarkMode ? '#F1F5F9' : '#0F172A',
       overflow: 'hidden',
       transition: 'background 0.2s, color 0.2s',
+      fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
     }}>
 
-      {/* Top Header */}
+      {/* Top Header with GIGW Strip, Institutional Bar, Tricolor, Horizontal Nav, Notice Ticker & Breadcrumbs */}
       <Header
+        activePage={activePage}
+        setActivePage={setActivePage}
+        onLogout={handleLogout}
         onProfileClick={() => setActivePage('profile')}
         selectedHouseholdId={selectedHouseholdId}
       />
 
-      {/* Sidebar + Main Display */}
-      <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-        <Sidebar
-          activePage={activePage}
-          setActivePage={setActivePage}
-          onLogout={handleLogout}
-        />
-        
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-          <main style={{ flex: 1, overflowY: 'auto', padding: 14 }}>
-            <ErrorBoundary key={activePage}>
-              {renderPage()}
-            </ErrorBoundary>
-          </main>
+      {/* Full-Width Main Content Display (Matching Indian Government portal architecture) */}
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div style={{ maxWidth: 1440, margin: '0 auto', padding: '16px 24px 80px 24px' }}>
+          
+          {/* Official Indian Gov Title Banner (Exact match to reference image) */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+              <div>
+                {/* Amber Pre-header Tag */}
+                <span style={{
+                  display: 'inline-block',
+                  background: '#FEF3C7',
+                  border: '1px solid #FDE68A',
+                  color: '#B45309',
+                  fontSize: 9.5,
+                  fontWeight: 900,
+                  padding: '2px 8px',
+                  borderRadius: 4,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  marginBottom: 4
+                }}>
+                  {t('banner_engine')}
+                </span>
+
+                {/* Main Dual Language Title */}
+                <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: '#0B296B', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                  {activePage === 'generation' ? (language === 'kn' ? 'ರಾಷ್ಟ್ರೀಯ ವಿದ್ಯುತ್ ಸ್ಥಾವರಗಳ ನೋಂದಣಿ (Power Plants)' : language === 'hi' ? 'राष्ट्रीय विद्युत संयंत्र रजिस्ट्री (Power Plants)' : 'National Power Plant Registry (विद्युत संयंत्र रजिस्ट्री)') :
+                   activePage === 'solar' ? (language === 'kn' ? 'ಪಿಎಂ ಸೂರ್ಯ ಘರ್ ಸೌರ ಅಳವಡಿಕೆ ವಿಶ್ಲೇಷಣೆ (Solar Mission)' : language === 'hi' ? 'पीएम सूर्य घर सौर ऊर्जा विश्लेषण (Solar Mission)' : 'PM Surya Ghar Solar Adoption Analytics (सौर ऊर्जा मिशन)') :
+                   activePage === 'state-reports' ? (language === 'kn' ? 'ಸಮಗ್ರ ರಾಜ್ಯ ವಿದ್ಯುತ್ ವಿವರಗಳು (State Reports)' : language === 'hi' ? 'व्यापक राज्य विद्युत विवरण (State Reports)' : 'Comprehensive State Electricity Profiles (राज्य विद्युत विवरण)') :
+                   activePage === 'overview' ? (language === 'kn' ? 'SCADA ಫೀಡರ್ ಟೆಲಿಮೆಟ್ರಿ ಮತ್ತು ಲೋಡ್ ಮಾನಿಟರ್ (SCADA Telemetry)' : language === 'hi' ? 'SCADA फीडर टेलीमेट्री एवं लोड मॉनिटर (SCADA Telemetry)' : 'SCADA Feeder Telemetry & Load Monitor (ग्रिड टेलीमेट्री)') :
+                   activePage === 'evaluation' ? (language === 'kn' ? 'ಮಾದರಿ ಮೌಲ್ಯಮಾಪನ ಮತ್ತು ಬೆಂಚ್‌ಮಾರ್ಕ್ ಸೇವೆ (Model Benchmark)' : language === 'hi' ? 'मॉडल मूल्यांकन एवं बेंचमार्क सेवा (Model Benchmark)' : 'Model Evaluation & Benchmark Service (मॉडल मूल्यांकन)') :
+                   (language === 'kn' ? 'ರಾಷ್ಟ್ರೀಯ ಇಂಧನ ವಿಶ್ಲೇಷಣಾ ವೇದಿಕೆ (National Energy Platform)' : language === 'hi' ? 'राष्ट्रीय ऊर्जा विश्लेषिकी मंच (National Energy Platform)' : 'National Energy Analytics Platform (राष्ट्रीय विद्युत मंच)')}
+                </h1>
+                <p style={{ margin: '3px 0 0 0', fontSize: 11, color: '#64748B', fontWeight: 500 }}>
+                  {t('official_service_caption')}
+                </p>
+              </div>
+
+              {/* Green Status Pill */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                background: '#DCFCE7',
+                border: '1px solid #86EFAC',
+                color: '#15803D',
+                padding: '4px 12px',
+                borderRadius: 6,
+                fontSize: 11,
+                fontWeight: 800
+              }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#16A34A' }}></span>
+                <span>{t('model_active_badge')}</span>
+              </div>
+            </div>
+
+            {/* Solid Separator Line */}
+            <hr style={{ border: 'none', borderBottom: '1px solid #CBD5E1', margin: '12px 0 0 0' }} />
+          </div>
+
+          {/* Render Active Page */}
+          <ErrorBoundary key={activePage}>
+            {renderPage()}
+          </ErrorBoundary>
         </div>
       </div>
 
-      {/* Floating Snowflake Cortex Assistant */}
+      {/* Floating Judges Demo Tour Button (Bottom Left, matching reference image) */}
+      <div style={{ position: 'fixed', bottom: 20, left: 24, zIndex: 99 }}>
+        <button
+          onClick={() => {
+            const sequence = ['national', 'generation', 'solar', 'state-reports', 'overview', 'evaluation'];
+            const nextIdx = (sequence.indexOf(activePage) + 1) % sequence.length;
+            setActivePage(sequence[nextIdx]);
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            background: '#EA580C',
+            color: '#FFFFFF',
+            border: '2px solid #FFFFFF',
+            borderRadius: 999,
+            padding: '7px 16px',
+            fontSize: 11,
+            fontWeight: 800,
+            boxShadow: '0 4px 12px rgba(234,88,12,0.35)',
+            cursor: 'pointer',
+            transition: 'transform 0.15s'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.04)'}
+          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          <span>🧭</span>
+          <span>{t('judges_tour')}</span>
+        </button>
+      </div>
+
+      {/* Floating Urja Mitra Assistant (Bottom Right, matching reference image) */}
       <AgentChatWidget />
     </div>
   );
