@@ -1,7 +1,6 @@
 # EcoWatt AI — Residential Electricity Monitoring & Forecasting System
 
 EcoWatt AI is an intelligent Residential Energy Management System (REMS) that provides live consumption tracking, flags load anomalies, and leverages a hybrid deep learning model (CNN-LSTM) to forecast residential energy usage.
-
 This system is built from scratch to stand as a full-stack, B.E. (CSE/CSD/ECE) major project prototype.
 
 ---
