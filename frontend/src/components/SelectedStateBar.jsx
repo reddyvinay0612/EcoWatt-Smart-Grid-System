@@ -1,9 +1,9 @@
 import React from 'react';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, Sparkles, ArrowUpRight } from 'lucide-react';
 import { stateData } from '../data/stateData';
 import { useTheme } from '../context/ThemeContext';
 
-export default function SelectedStateBar({ selectedState }) {
+export default function SelectedStateBar({ selectedState, onOpenPrediction }) {
   const { isDarkMode } = useTheme();
   const s = stateData.find(x => x.name === selectedState);
 
@@ -45,6 +45,33 @@ export default function SelectedStateBar({ selectedState }) {
           </div>
         </div>
       ))}
+
+      {onOpenPrediction && (
+        <button
+          onClick={() => onOpenPrediction({ name: s.name, isDistrict: false, parentState: null })}
+          title="Open complete AI econometric prediction dossier for this state"
+          style={{
+            marginLeft: 'auto',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            background: '#0B296B',
+            color: '#FFFFFF',
+            border: 'none',
+            borderRadius: 6,
+            padding: '6px 12px',
+            fontSize: 10.5,
+            fontWeight: 800,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.15)'
+          }}
+        >
+          <Sparkles size={12} color="#F59E0B" />
+          <span>AI Prediction Dossier</span>
+          <ArrowUpRight size={11} color="#FDE68A" />
+        </button>
+      )}
     </div>
   );
 }

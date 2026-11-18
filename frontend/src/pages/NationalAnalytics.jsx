@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toPng } from 'html-to-image';
-import { Download, ArrowLeft } from 'lucide-react';
+import { Download, ArrowLeft, Sparkles, ArrowUpRight } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 // ── Preserved existing components ──────────────────────────────────
@@ -233,6 +233,39 @@ export default function NationalAnalytics({ onNavigateToPrediction }) {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {/* AI Prediction Primary Action Button */}
+              <button
+                onClick={() => {
+                  if (onNavigateToPrediction) {
+                    onNavigateToPrediction({
+                      name: selectedState || 'Karnataka',
+                      isDistrict: false,
+                      parentState: null
+                    });
+                  }
+                }}
+                title="Navigate to comprehensive AI Econometric Prediction dossier for selected region"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  background: '#0B296B',
+                  color: '#FFFFFF',
+                  border: '1px solid #1D4ED8',
+                  borderRadius: 8,
+                  padding: '5px 12px',
+                  fontSize: 10,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 2px 4px rgba(11,41,107,0.2)'
+                }}
+              >
+                <Sparkles size={12} color="#F59E0B" />
+                <span>AI Prediction</span>
+                <ArrowUpRight size={11} color="#FDE68A" />
+              </button>
+
               <SearchBar data={dataset} onSelect={n => handleSelectState(n)} isDarkMode={isDarkMode} />
               <button onClick={handleExport} style={{ display: 'flex', alignItems: 'center', gap: 5, background: buttonBg, border: `1px solid ${buttonBorder}`, borderRadius: 8, padding: '5px 10px', fontSize: 9, fontWeight: 700, color: labelColor, cursor: 'pointer' }}>
                 <Download size={11} /> Export
@@ -250,7 +283,7 @@ export default function NationalAnalytics({ onNavigateToPrediction }) {
             />
           </div>
 
-          <SelectedStateBar selectedState={selectedState} />
+          <SelectedStateBar selectedState={selectedState} onOpenPrediction={onNavigateToPrediction} />
 
           {/* Predictive Energy Consumption & Carbon Emissions Card (State Level) */}
           <StateDistrictPredictionCard 
@@ -341,10 +374,45 @@ export default function NationalAnalytics({ onNavigateToPrediction }) {
                 </button>
               ))}
             </div>
-            <SearchBar data={dataset} onSelect={n => setSelectedDist(n)} isDarkMode={isDarkMode} />
-            <button onClick={handleExport} style={{ display: 'flex', alignItems: 'center', gap: 5, background: buttonBg, border: `1px solid ${buttonBorder}`, borderRadius: 8, padding: '5px 10px', fontSize: 9, fontWeight: 700, color: labelColor, cursor: 'pointer' }}>
-              <Download size={11} /> Export
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {/* AI Prediction Button for State / District Drill-Down */}
+              <button
+                onClick={() => {
+                  if (onNavigateToPrediction) {
+                    onNavigateToPrediction({
+                      name: selectedDistrict || selectedState,
+                      isDistrict: !!selectedDistrict,
+                      parentState: selectedState
+                    });
+                  }
+                }}
+                title="Open AI Prediction Dossier for this state or selected district"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  background: '#0B296B',
+                  color: '#FFFFFF',
+                  border: '1px solid #1D4ED8',
+                  borderRadius: 8,
+                  padding: '5px 12px',
+                  fontSize: 10,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 2px 4px rgba(11,41,107,0.2)'
+                }}
+              >
+                <Sparkles size={12} color="#F59E0B" />
+                <span>{selectedDistrict ? `AI Prediction (${selectedDistrict})` : `AI Prediction (${selectedState})`}</span>
+                <ArrowUpRight size={11} color="#FDE68A" />
+              </button>
+
+              <SearchBar data={dataset} onSelect={n => setSelectedDist(n)} isDarkMode={isDarkMode} />
+              <button onClick={handleExport} style={{ display: 'flex', alignItems: 'center', gap: 5, background: buttonBg, border: `1px solid ${buttonBorder}`, borderRadius: 8, padding: '5px 10px', fontSize: 9, fontWeight: 700, color: labelColor, cursor: 'pointer' }}>
+                <Download size={11} /> Export
+              </button>
+            </div>
           </div>
         </div>
 
@@ -384,6 +452,7 @@ export default function NationalAnalytics({ onNavigateToPrediction }) {
                 averageLabel={detailItem.isState ? 'National Avg' : 'State Avg'}
                 activeMetric={activeMetric}
                 isDarkMode={isDarkMode}
+                onOpenPrediction={onNavigateToPrediction}
                 onClose={() => setSelectedDist(null)}
               />
             </div>

@@ -20,7 +20,8 @@ export default function DetailPanel({
   averageLabel = 'Average', 
   isDarkMode = true,
   parentState, // Passed from parent to query parent state ML models if inspecting a district
-  activeMetric = 'electricity'
+  activeMetric = 'electricity',
+  onOpenPrediction = null
 }) {
   const [activeTab, setActiveTab] = useState('current');
 
@@ -195,6 +196,7 @@ export default function DetailPanel({
             }}
             isDistrict={isDistrict}
             parentState={parentState}
+            onOpenFullDossier={onOpenPrediction}
           />
           <PredictionPanel 
             stateName={forecastState} 
