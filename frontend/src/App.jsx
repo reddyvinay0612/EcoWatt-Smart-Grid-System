@@ -7,6 +7,7 @@ import NationalAnalytics from './pages/NationalAnalytics';
 import SolarAnalytics    from './pages/SolarAnalytics';
 import StateReportExplorer from './pages/StateReportExplorer';
 import PowerGenerationExplorer from './pages/PowerGenerationExplorer';
+import RegionPredictionDetailPage from './pages/RegionPredictionDetailPage';
 
 import Header  from './components/Header';
 
@@ -54,6 +55,7 @@ function App() {
   });
 
   const [activePage,          setActivePage]          = useState('national');
+  const [predictionTargetRegion, setPredictionTargetRegion] = useState({ name: 'Karnataka', isDistrict: false, parentState: null });
   const [activeQuery,         setActiveQuery]         = useState(null);
   const [households,          setHouseholds]          = useState([]);
   const [selectedHouseholdId, setSelectedHouseholdId] = useState('');
@@ -257,8 +259,24 @@ function App() {
         return <StateReportExplorer />;
       case 'profile':
         return <ProfilePage onBackToDashboard={() => setActivePage('national')} selectedHouseholdId={selectedHouseholdId} />;
+      case 'prediction-detail':
+        return (
+          <RegionPredictionDetailPage
+            regionName={predictionTargetRegion.name}
+            isDistrict={predictionTargetRegion.isDistrict}
+            parentState={predictionTargetRegion.parentState}
+            onBack={() => setActivePage('national')}
+          />
+        );
       default:
-        return <NationalAnalytics />;
+        return (
+          <NationalAnalytics 
+            onNavigateToPrediction={(regionInfo) => {
+              setPredictionTargetRegion(regionInfo);
+              setActivePage('prediction-detail');
+            }} 
+          />
+        );
     }
   };
 

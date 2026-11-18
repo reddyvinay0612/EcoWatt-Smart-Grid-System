@@ -30,7 +30,8 @@ import { useLanguage } from '../context/LanguageContext';
 export default function StateDistrictPredictionCard({ 
   selectedRegion, 
   isDistrict = false, 
-  parentState = null 
+  parentState = null,
+  onOpenFullDossier = null
 }) {
   const { isDarkMode } = useTheme();
   const { language } = useLanguage();
@@ -205,11 +206,17 @@ export default function StateDistrictPredictionCard({
 
         {/* Right Action Bar: AI Prediction Button + Horizon Filter */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {/* AI Prediction Trigger Button */}
+          {/* AI Prediction Trigger / Navigate Button */}
           <button
-            onClick={fetchPrediction}
+            onClick={() => {
+              if (onOpenFullDossier) {
+                onOpenFullDossier({ name: regionName, isDistrict, parentState });
+              } else {
+                fetchPrediction();
+              }
+            }}
             disabled={loading}
-            title="Trigger real-time machine learning econometric inference"
+            title="Open complete AI econometric prediction dossier for this region"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -221,12 +228,13 @@ export default function StateDistrictPredictionCard({
               padding: '4px 9px',
               fontSize: 10,
               fontWeight: 800,
-              cursor: loading ? 'not-allowed' : 'pointer',
+              cursor: 'pointer',
               boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
             }}
           >
             {loading ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} color="#F59E0B" />}
             <span>{aiButtonLabel}</span>
+            <ArrowUpRight size={10} color="#FDE68A" />
           </button>
 
           {/* Horizon Filter Tabs */}

@@ -32,7 +32,7 @@ import getColorScale                                     from '../utils/colorSca
 import { fillMissingDistricts }                          from '../utils/generateMissingDistrictData';
 import { getOptimizationScore }                          from '../utils/optimizationEngine';
 
-export default function NationalAnalytics() {
+export default function NationalAnalytics({ onNavigateToPrediction }) {
   const { isDarkMode } = useTheme();
   const [view,             setView]           = useState('india');
   const [selectedState,    setSelectedState]  = useState(null);
@@ -261,6 +261,7 @@ export default function NationalAnalytics() {
               emissionFactor: 0.82 
             }}
             isDistrict={false}
+            onOpenFullDossier={onNavigateToPrediction}
           />
         </div>
 
@@ -372,6 +373,7 @@ export default function NationalAnalytics() {
               selectedRegion={detailItem || selectedStateObj || { name: selectedState, electricityConsumption: 1200, carbonEmission: 900, emissionFactor: 0.85 }}
               isDistrict={!!detailItem && !detailItem.isState}
               parentState={selectedState}
+              onOpenFullDossier={onNavigateToPrediction}
             />
           </div>
           {detailItem ? (
