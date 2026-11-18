@@ -22,6 +22,7 @@ import AiInsightsPanel       from '../components/AiInsightsPanel';
 import EnergySourceRings     from '../components/EnergySourceRings';
 import CarbonSavingsPanel    from '../components/CarbonSavingsPanel';
 import ForecastBarChart      from '../components/ForecastBarChart';
+import StateDistrictPredictionCard from '../components/StateDistrictPredictionCard';
 
 // ── Data & utils ───────────────────────────────────────────────────
 import { stateData, NATIONAL_AVG, NATIONAL_CARBON_AVG } from '../data/stateData';
@@ -250,6 +251,17 @@ export default function NationalAnalytics() {
           </div>
 
           <SelectedStateBar selectedState={selectedState} />
+
+          {/* Predictive Energy Consumption & Carbon Emissions Card (State Level) */}
+          <StateDistrictPredictionCard 
+            selectedRegion={selectedStateObj || { 
+              name: 'National Baseline (India)', 
+              electricityConsumption: NATIONAL_AVG, 
+              carbonEmission: NATIONAL_CARBON_AVG, 
+              emissionFactor: 0.82 
+            }}
+            isDistrict={false}
+          />
         </div>
 
         {/* Col 2: Tiers Donut + Trend Chart */}
@@ -337,20 +349,29 @@ export default function NationalAnalytics() {
 
         {/* State map + detail panel */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 14 }}>
-          <div className="map-export" style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, overflow: 'hidden', minHeight: 480 }}>
-            <StateMap
-              selectedState={selectedState}
-              districts={dataset}
-              selectedDistrict={selectedDistrict}
-              onSelectDistrict={d => setSelectedDist(typeof d === 'object' ? d.name : d)}
-              tierFilter={tierFilter}
-              isDarkMode={isDarkMode}
-              stateAverage={
-                activeMetric === 'carbon'
-                  ? (stateData.find(s => s.name === selectedState)?.carbonEmission || 800)
-                  : (stateData.find(s => s.name === selectedState)?.electricityConsumption || 1000)
-              }
-              activeMetric={activeMetric}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="map-export" style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 12, overflow: 'hidden', minHeight: 460 }}>
+              <StateMap
+                selectedState={selectedState}
+                districts={dataset}
+                selectedDistrict={selectedDistrict}
+                onSelectDistrict={d => setSelectedDist(typeof d === 'object' ? d.name : d)}
+                tierFilter={tierFilter}
+                isDarkMode={isDarkMode}
+                stateAverage={
+                  activeMetric === 'carbon'
+                    ? (stateData.find(s => s.name === selectedState)?.carbonEmission || 800)
+                    : (stateData.find(s => s.name === selectedState)?.electricityConsumption || 1000)
+                }
+                activeMetric={activeMetric}
+              />
+            </div>
+
+            {/* Predictive Forecast for Selected District or State */}
+            <StateDistrictPredictionCard
+              selectedRegion={detailItem || selectedStateObj || { name: selectedState, electricityConsumption: 1200, carbonEmission: 900, emissionFactor: 0.85 }}
+              isDistrict={!!detailItem && !detailItem.isState}
+              parentState={selectedState}
             />
           </div>
           {detailItem ? (
