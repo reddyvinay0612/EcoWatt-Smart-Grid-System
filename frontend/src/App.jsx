@@ -168,7 +168,14 @@ function App() {
   const renderPage = () => {
     switch (activePage) {
       case 'national':
-        return <NationalAnalytics />;
+        return (
+          <NationalAnalytics 
+            onNavigateToPrediction={(regionInfo) => {
+              setPredictionTargetRegion(regionInfo);
+              setActivePage('prediction-detail');
+            }} 
+          />
+        );
       case 'overview':
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -333,6 +340,7 @@ function App() {
                    activePage === 'state-reports' ? (language === 'kn' ? 'ಸಮಗ್ರ ರಾಜ್ಯ ವಿದ್ಯುತ್ ವಿವರಗಳು (State Reports)' : language === 'hi' ? 'व्यापक राज्य विद्युत विवरण (State Reports)' : 'Comprehensive State Electricity Profiles (राज्य विद्युत विवरण)') :
                    activePage === 'overview' ? (language === 'kn' ? 'SCADA ಫೀಡರ್ ಟೆಲಿಮೆಟ್ರಿ ಮತ್ತು ಲೋಡ್ ಮಾನಿಟರ್ (SCADA Telemetry)' : language === 'hi' ? 'SCADA फीडर टेलीमेट्री एवं लोड मॉनिटर (SCADA Telemetry)' : 'SCADA Feeder Telemetry & Load Monitor (ग्रिड टेलीमेट्री)') :
                    activePage === 'evaluation' ? (language === 'kn' ? 'ಮಾದರಿ ಮೌಲ್ಯಮಾಪನ ಮತ್ತು ಬೆಂಚ್‌ಮಾರ್ಕ್ ಸೇವೆ (Model Benchmark)' : language === 'hi' ? 'मॉडल मूल्यांकन एवं बेंचमार्क सेवा (Model Benchmark)' : 'Model Evaluation & Benchmark Service (मॉडल मूल्यांकन)') :
+                   activePage === 'prediction-detail' ? (language === 'kn' ? 'ಪ್ರಾದೇಶಿಕ ಭವಿಷ್ಯವಾಣಿ ಲೋಡ್ ಮತ್ತು ಹೊರಸೂಸುವಿಕೆ ವಿವರಗಳು (AI Dossier)' : language === 'hi' ? 'क्षेत्रीय पूर्वानुमानित लोड एवं उत्सर्जन विवरण (AI Dossier)' : 'Regional Predictive Load & Emissions Dossier (पूर्वानुमान विवरण)') :
                    (language === 'kn' ? 'ರಾಷ್ಟ್ರೀಯ ಇಂಧನ ವಿಶ್ಲೇಷಣಾ ವೇದಿಕೆ (National Energy Platform)' : language === 'hi' ? 'राष्ट्रीय ऊर्जा विश्लेषिकी मंच (National Energy Platform)' : 'National Energy Analytics Platform (राष्ट्रीय विद्युत मंच)')}
                 </h1>
                 <p style={{ margin: '3px 0 0 0', fontSize: 11, color: '#64748B', fontWeight: 500 }}>

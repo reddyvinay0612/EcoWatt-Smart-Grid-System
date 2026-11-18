@@ -235,10 +235,12 @@ export default function NationalAnalytics({ onNavigateToPrediction }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {/* AI Prediction Primary Action Button */}
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const targetName = typeof selectedState === 'object' ? (selectedState?.name || 'Karnataka') : (selectedState || 'Karnataka');
                   if (onNavigateToPrediction) {
                     onNavigateToPrediction({
-                      name: selectedState || 'Karnataka',
+                      name: targetName,
                       isDistrict: false,
                       parentState: null
                     });
@@ -377,12 +379,16 @@ export default function NationalAnalytics({ onNavigateToPrediction }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {/* AI Prediction Button for State / District Drill-Down */}
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const targetName = typeof selectedDistrict === 'object' ? (selectedDistrict?.name || selectedState) : (selectedDistrict || selectedState || 'Karnataka');
+                  const isDist = !!selectedDistrict;
+                  const pState = isDist ? (typeof selectedState === 'object' ? selectedState?.name : selectedState) : null;
                   if (onNavigateToPrediction) {
                     onNavigateToPrediction({
-                      name: selectedDistrict || selectedState,
-                      isDistrict: !!selectedDistrict,
-                      parentState: selectedState
+                      name: targetName,
+                      isDistrict: isDist,
+                      parentState: pState
                     });
                   }
                 }}

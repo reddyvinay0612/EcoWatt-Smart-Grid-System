@@ -208,14 +208,15 @@ export default function StateDistrictPredictionCard({
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {/* AI Prediction Trigger / Navigate Button */}
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
+              const targetName = typeof regionName === 'object' ? (regionName?.name || 'Karnataka') : (regionName || 'Karnataka');
               if (onOpenFullDossier) {
-                onOpenFullDossier({ name: regionName, isDistrict, parentState });
+                onOpenFullDossier({ name: targetName, isDistrict, parentState });
               } else {
                 fetchPrediction();
               }
             }}
-            disabled={loading}
             title="Open complete AI econometric prediction dossier for this region"
             style={{
               display: 'flex',
