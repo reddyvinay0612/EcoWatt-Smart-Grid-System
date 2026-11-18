@@ -15,10 +15,11 @@ from data_pipeline import create_sequences, preprocess_pipeline
 from model import CnnLstmModel, load_pytorch_model, device
 from app.alert_service import send_email_alert, send_sms_alert, create_in_app_notification
 from app.snowflake_agent import query_cortex_agent
-from app.routers import solar
+from app.routers import solar, prediction
 
 app = FastAPI(title="EcoWatt AI - Residential Energy Monitoring & Forecasting API")
 app.include_router(solar.router)
+app.include_router(prediction.router)
 
 # CORS middleware
 app.add_middleware(

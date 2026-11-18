@@ -3,6 +3,7 @@ import { Users, Globe, HelpCircle, Activity, Leaf, ShieldAlert } from 'lucide-re
 import OptimizationPanel from './OptimizationPanel';
 import PredictionPanel from './PredictionPanel';
 import OptimizationResultPanel from './OptimizationResultPanel';
+import StateDistrictPredictionCard from './StateDistrictPredictionCard';
 
 export default function DetailPanel({ 
   name, 
@@ -184,12 +185,17 @@ export default function DetailPanel({
 
       {activeTab === 'prediction' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {isDistrict && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 10, background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: 10, fontSize: 10, color: '#3B82F6' }}>
-              <HelpCircle size={14} />
-              <span>Forecasting model for parent state of <strong>{parentState}</strong></span>
-            </div>
-          )}
+          {/* Real-time State & District Econometric Prediction Card */}
+          <StateDistrictPredictionCard
+            selectedRegion={{
+              name: name,
+              electricityConsumption: electricityConsumption,
+              carbonEmission: carbonEmission,
+              emissionFactor: 0.82
+            }}
+            isDistrict={isDistrict}
+            parentState={parentState}
+          />
           <PredictionPanel 
             stateName={forecastState} 
             activeMetric={activeMetric} 
